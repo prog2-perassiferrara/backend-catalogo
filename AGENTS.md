@@ -33,7 +33,7 @@ Las funcionalidades que cruzan repositorios deben referenciar los contratos y do
 
 ## Arquitectura y planificación
 
-- Usar Java y Spring Boot con la skill `hexagonal-vertical-slicing`. Leer su `SKILL.md` y las referencias pertinentes antes de proponer o revisar decisiones arquitectónicas; no duplicar aquí sus instrucciones completas.
+- Usar Java y Spring Boot con la skill `hexagonal-arch`. Leer su `SKILL.md` y las referencias pertinentes antes de proponer o revisar decisiones arquitectónicas; no duplicar aquí sus instrucciones completas.
 - En el PLAN, identificar slices, responsabilidades, puertos y adaptadores necesarios, respetando la dirección de dependencias. No generar un CRUD completo ni estructuras vacías por defecto.
 - Mantener datos y migraciones propios y contratos internos protegidos con JWT. No acceder a la persistencia del otro backend.
 - Al usar `docs/MOBILE_GUIDELINES.md` y las plantillas, aplicar los puntos pertinentes a contratos, conectividad, persistencia, concurrencia y recuperación. Marcar como no aplicables las secciones exclusivas de UI o dispositivo, sin asignar esas responsabilidades al servicio.
