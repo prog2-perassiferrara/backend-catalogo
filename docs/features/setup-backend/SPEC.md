@@ -38,7 +38,7 @@ Fuentes: `../../../../PROJECT_STATEMENT-v1.md`, secciones 3.1, 3.2, seguridad y 
 <!-- Comportamiento actual relevante, limitación que queremos resolver y
 comportamientos existentes que deben conservarse. No describas la arquitectura. -->
 
-El repositorio contiene documentación, reglas de trabajo y un README mínimo. No tiene implementación, configuración de compilación ni infraestructura ejecutable.
+Al especificar esta funcionalidad, el repositorio contenía documentación, reglas de trabajo y un README mínimo, sin implementación ni configuración de compilación o infraestructura ejecutable. El resultado del setup se registra en TASKS.md.
 
 El usuario cambió la decisión inicial: se partirá de Spring Boot sin el generador JHipster, con arquitectura hexagonal desde el inicio. La compatibilidad de usuarios exigida por el enunciado se mantiene.
 
@@ -150,7 +150,7 @@ No marques los criterios como superados durante la especificación. -->
 | CA-07 | Intentar iniciar con configuración obligatoria ausente o inválida. | Arranque no completado y diagnóstico sin secretos. |
 | CA-08 | Intentar iniciar sin acceso a la base de datos. | Arranque no completado y diagnóstico sin secretos. |
 
-Estos criterios son objetivos pendientes de implementación y verificación; no se han ejecutado.
+Estos criterios definen el comportamiento requerido. Los resultados de su implementación y verificación se registran en TASKS.md.
 
 ## Decisiones pendientes
 

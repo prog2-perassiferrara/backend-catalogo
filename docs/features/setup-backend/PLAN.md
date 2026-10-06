@@ -38,7 +38,7 @@ derivar TASKS.md con tareas, dependencias y comprobaciones.
 | Casos de uso | `../../use-cases/` | Referencia para funcionalidades posteriores; CU-01 no se implementa en el setup. |
 | Material de clase y referencia de consulta | `../../../../toda_la_materia.md`, `../../../../MATERIA_REFERENCE.md` | Ejemplos y recomendaciones; no sustituyen enunciado ni anexo. |
 
-No existen código, wrappers, build ni Docker Compose en el repositorio.
+Al aprobar este PLAN todavía no existían código, wrappers, build ni Docker Compose. La implementación y sus evidencias están registradas en TASKS.md.
 
 **Convenciones y patrón de referencia:** skill `hexagonal-arch`, leída en `/home/valen/.agents/skills/hexagonal-arch/SKILL.md`. El usuario confirmó que es la skill renombrada desde `hexagonal-vertical-slicing`. Se utilizará la skill actual; no se requiere recuperar el directorio de ejemplo ausente. La revisión selectiva del material de clase refuerza el patrón por funcionalidad, la separación de representaciones y la creación de solo las partes necesarias. El POM didáctico usa Boot 4.0.6 y Java 25; no se presenta como versión obligatoria y se conserva Boot 4.1.1 acordado.
 
@@ -53,7 +53,7 @@ La configuración obligatoria inválida o ausente y la base de datos inaccesible
 
 Decisiones confirmadas: Maven y MySQL 8.4 LTS. La arquitectura seguirá la skill `hexagonal-arch`: organización por funcionalidad; dominio sin Spring/JPA/Jackson; aplicación dependiente del dominio; infraestructura con adaptadores de persistencia y web. Las interfaces de puertos emplearán tipos de dominio y los controladores futuros emplearán DTO. No se crearán slices, CRUD ni clases vacías en el setup.
 
-Confirmadas también las versiones Maven 3.10.0 y MySQL 8.4.12, y las dos formas de ejecución: Compose completo o backend desde el IDE con MySQL en Docker. Los detalles que siguen desarrollan esas decisiones y fueron aprobados por el usuario junto con este PLAN.
+Confirmadas también las versiones Maven 3.10.0 y MySQL 8.4.8, y las dos formas de ejecución: Compose completo o backend desde el IDE con MySQL en Docker. Los detalles que siguen desarrollan esas decisiones y fueron aprobados por el usuario junto con este PLAN.
 
 ## Módulos y componentes afectados
 
@@ -76,7 +76,7 @@ Confirmado por el usuario: un único módulo Maven y paquete base `com.prog2.cat
 | `src/main/resources/` (propuesto) | Crear | Configuración externa e integración de Flyway. | RF-02, RF-04, RF-06 |
 | `src/main/resources/db/migration/` (propuesto) | Crear cuando exista un cambio real de esquema | Migraciones SQL de almacenamiento propio; sin entidades de negocio ficticias. | RF-02 |
 | `src/test/java/com/prog2/catalog/` y `src/test/resources/` (propuestos) | Crear | Pruebas de integración y recursos exclusivos de test. | RF-01, RF-02, RF-06 |
-| `compose.yaml`, `Dockerfile`, `.dockerignore` (propuestos) | Crear | Backend Java 25, MySQL 8.4.12 y volumen propio. | RF-03 |
+| `compose.yaml`, `Dockerfile`, `.dockerignore` (propuestos) | Crear | Backend Java 25, MySQL 8.4.8 y volumen propio. | RF-03 |
 | `.env.example` (propuesto), `.gitignore` (existente) | Crear / modificar | Documentar variables y excluir `.env` y secretos locales. | RF-04 |
 
 ## Datos y contratos
@@ -86,7 +86,7 @@ Confirmado por el usuario: un único módulo Maven y paquete base `com.prog2.cat
 - **Modelos y contratos de entrada y salida:** no se implementan CU-01 ni registro/autenticación. Confirmado: usar Spring Boot Actuator y exponer únicamente `/actuator/health`, sin detalles internos, para comprobar disponibilidad técnica y conexión a MySQL. Este resultado no informa vigencia ni sincronización del catálogo. La comprobación de persistencia de CA-03 se realizará sobre Compose, conservando su almacenamiento.
 - **Identificadores, relaciones y restricciones:** no diseñar entidades de catálogo o usuarios en esta etapa.
 - **Origen de los datos mostrados y transformaciones:** no aplica, no hay flujo de consultas de producto en el setup.
-- **Persistencia, consultas y actualizaciones:** MySQL 8.4 LTS, Spring Data JPA/Hibernate y migraciones SQL propias gestionadas por Flyway (RF-02), confirmados por el usuario. Las entidades JPA y los repositorios Spring Data quedarán en infraestructura, separados de modelos y puertos del dominio. En el setup no se crearán entidades de negocio. La misma imagen `mysql:8.4.12` se utilizará en Compose y Testcontainers.
+- **Persistencia, consultas y actualizaciones:** MySQL 8.4 LTS, Spring Data JPA/Hibernate y migraciones SQL propias gestionadas por Flyway (RF-02), confirmados por el usuario. Las entidades JPA y los repositorios Spring Data quedarán en infraestructura, separados de modelos y puertos del dominio. En el setup no se crearán entidades de negocio. La misma imagen `mysql:8.4.8` se utilizará en Compose y Testcontainers.
 - **Convivencia entre datos locales y remotos:** no se incorpora sincronización central en este issue.
 - **Compatibilidad y migraciones de datos existentes:** no existe persistencia previa en el repositorio; no introducir otra réplica de datos de Turnos.
 
@@ -108,7 +108,8 @@ con el proyecto y justifica las incorporaciones. No agregues dependencias por de
 
 ### Versiones y dependencias
 
-- Confirmado: Java 25, Spring Boot 4.1.1, Maven 3.10.0 mediante wrapper y MySQL 8.4.12.
+- Confirmado: Java 25, Spring Boot 4.1.1, Maven 3.10.0 mediante wrapper y MySQL 8.4.8.
+- Ajuste aprobado durante la implementación: Docker Hub rechazó `mysql:8.4.12` como imagen inexistente; el usuario confirmó usar `mysql:8.4.8`, cuya disponibilidad se verificó en el registro oficial.
 - Un único módulo Maven; propuesta de coordenadas: `com.prog2:catalog`, empaquetado JAR. Usar `spring-boot-starter-parent:4.1.1` y compilación para Java 25.
 - Dependencias de runtime y test con versiones gestionadas por Spring Boot, sin overrides innecesarios. Los starters siguientes son de `org.springframework.boot`.
 
@@ -129,12 +130,12 @@ Artefactos contrastados con [dependencias gestionadas de Spring Boot 4.1.1](http
 - Propuesta: `src/main/resources/application.yaml` para configuración común mediante variables externas. Definir URL JDBC, usuario y contraseña de la base como obligatorios, sin valores secretos de fallback. Los parámetros de conexión deben usar host/puerto/base separados y nunca incluir contraseñas en la URL.
 - Usar `spring.jpa.hibernate.ddl-auto=validate`, `spring.jpa.open-in-view=false` y `spring.sql.init.mode=never`. Flyway será el único mecanismo de cambios de esquema; Hibernate validará las entidades cuando se incorporen. En este setup no existen entidades de negocio que validar.
 - Flyway habilitado al arrancar, scripts en `classpath:db/migration`, sin migraciones de negocio ficticias. Los recursos de comprobación se ubicarán solo en tests. Una base vacía puede iniciar sin tablas de negocio; no representa catálogo vigente.
-- Actuator: exponer solo `health`, `show-details=never` y `show-components=never`. Mantener la comprobación de base en el estado global. Esperar HTTP 200 con `status=UP` en el caso válido. No equivale a sincronización del catálogo.
+- Actuator: exponer solo `health`, `show-details=never`, `show-components=never`, probes y discovery deshabilitados para mostrar únicamente el estado global. Mantener la comprobación de base en el estado global. Esperar HTTP 200 con `status=UP` en el caso válido. No equivale a sincronización del catálogo.
 - Propuesta de esperas de conexión: 5 segundos para establecer conexión JDBC y 10 segundos para adquirir conexión del pool, sin reintentos Flyway adicionales. Verificar que los ensayos de arranque fallido terminen dentro de 30 segundos; ajustar el mecanismo si una dependencia ignora esas esperas, sin ocultar el fallo.
 
 ### Ejecución local confirmada
 
-- **Compose completo:** servicios `catalog` y `mysql`, red propia, MySQL 8.4.12 y volumen nombrado `catalog-mysql-data`. Imagen Java 25 con build Maven y ejecución del JAR; fijar tags disponibles y registrar los usados al implementar. El backend conectará al host interno `mysql` y esperará al healthcheck de la base antes de arrancar.
+- **Compose completo:** servicios `catalog` y `mysql`, red propia, MySQL 8.4.8 y volumen nombrado `catalog-mysql-data`. Imagen Java 25 con build Maven y ejecución del JAR; fijar tags disponibles y registrar los usados al implementar. El backend conectará al host interno `mysql` y esperará al healthcheck de la base antes de arrancar.
 - **IDE o wrapper:** iniciar solo MySQL con Compose y ejecutar Java en la máquina. Propuesta de puertos locales configurables: backend 8080, MySQL 3306, vinculados a localhost para uso de desarrollo. La aplicación conectará a `localhost`, no al nombre de servicio Docker.
 - `.env` fuera de Git y `.env.example` con nombres de variables y valores no secretos de ejemplo; las contraseñas quedarán vacías para completar localmente. Propuesta: `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `DB_HOST`, `DB_PORT`, `APP_PORT` y `MYSQL_ROOT_PASSWORD` para inicialización de MySQL. La cuenta del backend tendrá permisos únicamente sobre su base y no será root.
 - Compose carga `.env` para interpolar su configuración. Spring Boot no carga ese archivo automáticamente: documentar cómo proporcionar las mismas variables al IDE o al proceso iniciado con Maven.
@@ -167,11 +168,11 @@ Compilar o tener tests en verde no sustituye revisar los criterios de la spec. -
 
 **Comprobaciones de regresión:** no hay implementación previa ni tests existentes. Conservar documentación y requisitos ya revisados.
 
-**Comandos verificados para compilar y ejecutar tests:** ninguno disponible todavía. Propuestos para el nuevo wrapper: `./mvnw verify` (compilar y ejecutar pruebas), `./mvnw spring-boot:run` (backend local con variables configuradas), `docker compose up --build` (entorno completo), `docker compose up -d mysql` (base para IDE) y consulta de `/actuator/health` en el puerto configurado. Su ejecución y resultados se documentarán al implementar; no están verificados ahora.
+**Comandos implementados y verificados:** `./mvnw verify` (10 pruebas, sin fallos ni omisiones), `./mvnw spring-boot:run` (Java local con MySQL Docker), Compose completo con `up --build -d` y consulta de `/actuator/health`. La verificación Compose utilizó proyecto y configuración ficticia aislados; ver TASKS.md para comandos, recreación de contenedores y resultados. README documenta ambos modos de ejecución.
 
 **Pruebas en dispositivo, emulador o simulador:** no aplican al setup backend.
 
-**Limitaciones del entorno:** se verificaron los comandos: Java Temurin 25.0.2, Docker 29.8.2 y Docker Compose v5.6.0. Eso no prueba acceso al daemon ni descarga de imágenes. No existen aún build ni pruebas ejecutables del backend; la descarga de Maven/imágenes y las comprobaciones de integración se validarán al implementar.
+**Entorno verificado:** Java Temurin 25.0.2, Docker 29.8.2 y Docker Compose v5.6.0; Maven 3.10.0 mediante wrapper. Se verificó acceso al daemon, resolución de dependencias, descarga de imágenes, Testcontainers y ambos modos de ejecución. Docker usa `eclipse-temurin:25.0.2_10-jdk-noble` para build y `eclipse-temurin:25.0.2_10-jre-noble` para runtime. No se verificó ejecución en Windows ni integración con cátedra, fuera de este setup.
 
 ## Orden de implementación
 
@@ -191,8 +192,8 @@ La implementación requiere autorización explícita posterior. TASKS.md se deri
 <!-- Riesgos concretos de esta solución y cómo se resolverán, sin listas genéricas.
 Escribe Ninguna en las decisiones pendientes cuando estén resueltas. -->
 
-- **Riesgos y medidas:** resolución de dependencias e imágenes aún no ejecutada, verificar con Maven e integración antes de declarar cumplimiento; confusión entre hosts Docker/IDE, documentar ambos; exposición de secretos en fallos de arranque, verificar con valores ficticios; pérdida de datos por volumen ausente, probar recreación de contenedores; conexión sin límite de espera, probar fallo con tiempo acotado.
-- **Decisiones pendientes:** ninguna para el alcance de setup. Los detalles técnicos propuestos en este documento fueron aprobados con el PLAN; sus archivos todavía no están implementados. La identidad de usuarios y protección JWT de APIs de negocio corresponden al issue posterior de autenticación.
+- **Riesgos y medidas:** dependencias e imágenes resueltas y verificadas con build e integración; confusión entre hosts Docker/IDE, documentar ambos; exposición de secretos en fallos de arranque, verificar con valores ficticios; pérdida de datos por volumen ausente, probar recreación de contenedores; conexión sin límite de espera, probar fallo con tiempo acotado.
+- **Decisiones pendientes:** ninguna para el alcance de setup. Los detalles técnicos propuestos en este documento fueron aprobados con el PLAN; la implementación autorizada posteriormente se registra en TASKS.md. La identidad de usuarios y protección JWT de APIs de negocio corresponden al issue posterior de autenticación.
 - No agregar funcionalidades de sincronización o autenticación para comprobar la base técnica.
 
 <!-- ANTES DE SOLICITAR APROBACIÓN
