@@ -10,6 +10,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -30,6 +31,9 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.mysql.MySQLContainer;
 
+import com.prog2.catalog.integration.TechnicalIntegrationTestServer;
+import com.prog2.catalog.integration.domain.ports.in.GetTechnicalTokenUseCase;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -39,6 +43,21 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class CatalogApplicationTests {
 
     private static final String TEST_PASSWORD = "fictional-test-password";
+    private static final TechnicalIntegrationTestServer CENTRAL = centralServer();
+
+    private static TechnicalIntegrationTestServer centralServer() {
+        try {
+            return new TechnicalIntegrationTestServer(TechnicalIntegrationTestServer.login(
+                    TechnicalIntegrationTestServer.TOKEN, "PROVISIONED"));
+        } catch (java.io.IOException failure) {
+            throw new ExceptionInInitializerError(failure);
+        }
+    }
+
+    @AfterAll
+    static void closeCentralServer() {
+        CENTRAL.close();
+    }
 
     @Container
     static final MySQLContainer MYSQL = new MySQLContainer("mysql:8.4.8")
@@ -53,6 +72,10 @@ class CatalogApplicationTests {
         registry.add("DB_NAME", MYSQL::getDatabaseName);
         registry.add("DB_USER", MYSQL::getUsername);
         registry.add("DB_PASSWORD", MYSQL::getPassword);
+        registry.add("CATEDRA_BASE_URL", () -> CENTRAL.baseUrl().toString());
+        registry.add("CATEDRA_USERNAME", () -> "test-user");
+        registry.add("CATEDRA_PASSWORD", () -> TechnicalIntegrationTestServer.PASSWORD);
+        registry.add("CATEDRA_GROUP_ID", () -> "test-group");
     }
 
     @LocalServerPort
@@ -60,6 +83,22 @@ class CatalogApplicationTests {
 
     @Autowired
     private JdbcTemplate jdbc;
+
+    @Autowired
+    private GetTechnicalTokenUseCase technicalTokens;
+
+    @Test
+    void authenticatesAtStartupAndKeepsInternalTokenEndpointUnpublished() throws Exception {
+        CENTRAL.awaitRequest();
+        // Esperar una condición observable, sin adivinar cuánto demora el arranque asíncrono.
+        org.awaitility.Awaitility.await().atMost(Duration.ofSeconds(5))
+                .ignoreExceptionsInstanceOf(com.prog2.catalog.integration.application.exception.IntegrationUnavailableException.class)
+                .untilAsserted(() ->
+                assertThat(technicalTokens.getToken()).isEqualTo(TechnicalIntegrationTestServer.TOKEN));
+        assertThat(CENTRAL.requests()).hasSize(1);
+        assertThat(CENTRAL.requests().getFirst().path()).isEqualTo("/api/authenticate");
+        assertThat(get("/api/internal/catedra/token").statusCode()).isEqualTo(404);
+    }
 
     @Test
     void appliesFlywayMigrationAndPersistsItsData() {
@@ -118,6 +157,45 @@ class CatalogApplicationTests {
 
     @Test
     @Timeout(30)
+    void rejectsMissingIntegrationSettingWithoutLoggingSecrets(CapturedOutput output) {
+        Map<String, String> settings = validSettings();
+        settings.remove("CATEDRA_PASSWORD");
+        assertStartupFails(settings);
+        assertThat(output).contains("CATEDRA_PASSWORD")
+                .doesNotContain(TEST_PASSWORD, TechnicalIntegrationTestServer.PASSWORD);
+    }
+
+    @Test
+    @Timeout(30)
+    void keepsHttpAndDatabaseAvailableWhenCentralIsUnavailable(CapturedOutput output) throws Exception {
+        try (var unavailable = new TechnicalIntegrationTestServer()) {
+            Map<String, String> settings = validSettings();
+            settings.put("CATEDRA_BASE_URL", unavailable.baseUrl().toString());
+            settings.put("server.port", "0");
+            try (ConfigurableApplicationContext context = application(
+                    WebApplicationType.SERVLET).run(arguments(settings))) {
+                unavailable.awaitRequest();
+                assertThat(context.isActive()).isTrue();
+                assertThat(context.getBean(JdbcTemplate.class).queryForObject("SELECT 1", Integer.class))
+                        .isEqualTo(1);
+                int httpPort = Integer.parseInt(context.getEnvironment().getProperty("local.server.port"));
+                try (HttpClient client = HttpClient.newHttpClient()) {
+                    var response = client.send(HttpRequest.newBuilder(URI.create(
+                            "http://localhost:" + httpPort + "/actuator/health")).GET().build(),
+                            HttpResponse.BodyHandlers.ofString());
+                    assertThat(response.statusCode()).isEqualTo(200);
+                    assertThat(response.body()).isEqualTo("{\"status\":\"UP\"}");
+                }
+                assertThatThrownBy(context.getBean(GetTechnicalTokenUseCase.class)::getToken)
+                        .isInstanceOf(com.prog2.catalog.integration.application.exception.IntegrationUnavailableException.class);
+            }
+        }
+        assertThat(output).doesNotContain(TEST_PASSWORD, TechnicalIntegrationTestServer.PASSWORD,
+                TechnicalIntegrationTestServer.TOKEN);
+    }
+
+    @Test
+    @Timeout(30)
     void failsStartupWhenDatabaseIsUnreachableWithoutLoggingPassword(CapturedOutput output) throws Exception {
         Map<String, String> settings = validSettings();
         // Reservar un puerto y cerrarlo: la conexión debe ser rechazada, no simular una base funcional.
@@ -144,24 +222,35 @@ class CatalogApplicationTests {
         settings.put("DB_NAME", MYSQL.getDatabaseName());
         settings.put("DB_USER", MYSQL.getUsername());
         settings.put("DB_PASSWORD", MYSQL.getPassword());
+        settings.put("CATEDRA_BASE_URL", CENTRAL.baseUrl().toString());
+        settings.put("CATEDRA_USERNAME", "test-user");
+        settings.put("CATEDRA_PASSWORD", TechnicalIntegrationTestServer.PASSWORD);
+        settings.put("CATEDRA_GROUP_ID", "test-group");
         return settings;
     }
 
     private static void assertStartupFails(Map<String, String> settings) {
+        SpringApplication application = application(WebApplicationType.NONE);
+        assertThatThrownBy(() -> {
+            try (ConfigurableApplicationContext ignored = application.run(arguments(settings))) {
+                // Llegar a este punto significa que el arranque inválido fue aceptado.
+            }
+        }).isInstanceOf(RuntimeException.class);
+    }
+
+    private static SpringApplication application(WebApplicationType type) {
         SpringApplication application = new SpringApplication(CatalogApplication.class);
-        application.setWebApplicationType(WebApplicationType.NONE);
+        application.setWebApplicationType(type);
         StandardEnvironment environment = new StandardEnvironment();
         // El resultado no debe depender de credenciales configuradas en la máquina del desarrollador.
         environment.getPropertySources().remove(StandardEnvironment.SYSTEM_ENVIRONMENT_PROPERTY_SOURCE_NAME);
         environment.getPropertySources().remove(StandardEnvironment.SYSTEM_PROPERTIES_PROPERTY_SOURCE_NAME);
         application.setEnvironment(environment);
-        String[] arguments = settings.entrySet().stream()
-                .map(entry -> "--" + entry.getKey() + "=" + entry.getValue()).toArray(String[]::new);
+        return application;
+    }
 
-        assertThatThrownBy(() -> {
-            try (ConfigurableApplicationContext ignored = application.run(arguments)) {
-                // Llegar a este punto significa que el arranque inválido fue aceptado.
-            }
-        }).isInstanceOf(RuntimeException.class);
+    private static String[] arguments(Map<String, String> settings) {
+        return settings.entrySet().stream()
+                .map(entry -> "--" + entry.getKey() + "=" + entry.getValue()).toArray(String[]::new);
     }
 }
