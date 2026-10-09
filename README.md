@@ -100,6 +100,50 @@ El volumen de Compose se verifica por separado, recreando sus contenedores y
 comprobando que un dato ficticio confirmado permanece disponible; ver las
 evidencias de [TASKS.md](docs/features/setup-backend/TASKS.md).
 
+## CI y calidad con SonarQube Cloud
+
+El [workflow](.github/workflows/ci.yml) se ejecuta al abrir, actualizar o reabrir
+un PR hacia `main` y con cada push a `main`. Usa Java 25 y el Maven Wrapper:
+
+1. `./mvnw -B -ntp clean verify`: compila, prueba y genera cobertura con JaCoCo.
+2. `./mvnw -B -ntp sonar:sonar`: envía el análisis y la cobertura a SonarQube Cloud.
+
+JaCoCo genera `target/site/jacoco/jacoco.xml` para Sonar y
+`target/site/jacoco/index.html` para consulta local. Sonar importa la cobertura;
+no ejecuta las pruebas. Testcontainers levanta MySQL temporal en el runner:
+no se necesita Compose, `.env` ni credenciales de cátedra.
+
+### Configuración inicial
+
+1. En SonarQube Cloud: avatar > **My account > Access Tokens > Personal Tokens**.
+   Generar un token con acceso de análisis al proyecto, nombre y caducidad;
+   copiar el valor antes de salir, porque solo se muestra una vez.
+2. En GitHub: **Settings > Secrets and variables > Actions > New repository secret**.
+   Crear `SONAR_TOKEN` con ese valor. No guardarlo en archivos ni compartirlo por chat.
+3. En el proyecto de Sonar: **Administration > Analysis Method**, desactivar
+   **Automatic Analysis** antes de ejecutar el análisis por CI.
+
+La organización y la clave pública del proyecto están en `pom.xml`. El secreto
+se entrega solo al paso de análisis. En PR desde forks se ejecutan las pruebas,
+pero se omite el análisis porque GitHub no entrega secretos a esos workflows.
+
+### Consultar resultados
+
+- **GitHub > Actions** y checks del PR: logs de compilación, pruebas y análisis.
+- [Proyecto en SonarQube Cloud](https://sonarcloud.io/dashboard?id=prog2-perassiferrara_backend-catalogo):
+  hallazgos, cobertura y Quality Gate del commit o PR analizado.
+- **Quality Gate informativo:** puede aparecer rojo en el check de Sonar aunque
+  Actions termine correctamente. `sonar.qualitygate.wait=false` evita hacer
+  fallar el job por ese resultado. Los errores de compilación, pruebas o del
+  scanner sí hacen fallar el job; no se ocultan con `continue-on-error`.
+
+Un check rojo solo impide el merge si las reglas del repositorio lo exigen.
+Este workflow no modifica esas reglas ni la aprobación del profesor. Tampoco
+despliega el backend ni verifica el volumen persistente de Compose.
+
+Documentación y evidencia de CI: [SPEC](docs/features/ci-calidad/SPEC.md),
+[PLAN](docs/features/ci-calidad/PLAN.md) y [TASKS](docs/features/ci-calidad/TASKS.md).
+
 ## Persistencia y arquitectura
 
 Flyway es el único responsable de crear o modificar el esquema. Hibernate usa
