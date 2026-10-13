@@ -231,11 +231,17 @@ class CatalogApplicationTests {
 
     private static void assertStartupFails(Map<String, String> settings) {
         SpringApplication application = application(WebApplicationType.NONE);
-        assertThatThrownBy(() -> {
-            try (ConfigurableApplicationContext ignored = application.run(arguments(settings))) {
-                // Llegar a este punto significa que el arranque inválido fue aceptado.
+        String[] startupArguments = arguments(settings);
+        ConfigurableApplicationContext[] startedContext = new ConfigurableApplicationContext[1];
+        try {
+            assertThatThrownBy(() -> startedContext[0] = application.run(startupArguments))
+                    .isInstanceOf(RuntimeException.class);
+        } finally {
+            // Si arranca inesperadamente, cerrar el contexto sin confundir un error de cierre con uno de arranque.
+            if (startedContext[0] != null) {
+                startedContext[0].close();
             }
-        }).isInstanceOf(RuntimeException.class);
+        }
     }
 
     private static SpringApplication application(WebApplicationType type) {

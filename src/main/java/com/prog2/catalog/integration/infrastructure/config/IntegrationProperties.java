@@ -17,6 +17,8 @@ import org.springframework.core.env.Environment;
  */
 public record IntegrationProperties(URI baseUrl, String username, String password, String groupId) {
 
+    private static final String BASE_URL_SETTING = "CATEDRA_BASE_URL";
+
     /**
      * Lee las cuatro variables {@code CATEDRA_*} obligatorias y valida su formato contractual.
      * Los diagnósticos identifican la variable inválida sin incorporar su valor.
@@ -26,7 +28,7 @@ public record IntegrationProperties(URI baseUrl, String username, String passwor
      * @throws BeanCreationException si falta un valor obligatorio o su formato es inválido
      */
     public static IntegrationProperties from(Environment environment) {
-        String baseUrl = required(environment, "CATEDRA_BASE_URL");
+        String baseUrl = required(environment, BASE_URL_SETTING);
         String username = required(environment, "CATEDRA_USERNAME");
         String password = required(environment, "CATEDRA_PASSWORD");
         String groupId = required(environment, "CATEDRA_GROUP_ID");
@@ -36,20 +38,21 @@ public record IntegrationProperties(URI baseUrl, String username, String passwor
         if (password.length() < 4 || password.length() > 100) {
             throw invalid("CATEDRA_PASSWORD");
         }
+        // Los cuantificadores posesivos evitan retrocesos; '-' separa bloques alfanuméricos sin ambigüedad.
         if (groupId.length() < 3 || groupId.length() > 100
-                || !groupId.matches("[a-z0-9]+(?:-[a-z0-9]+)*")) {
+                || !groupId.matches("[a-z0-9]++(?:-[a-z0-9]++)*+")) {
             throw invalid("CATEDRA_GROUP_ID");
         }
         URI uri;
         try {
             uri = URI.create(baseUrl);
-        } catch (IllegalArgumentException ignored) {
-            throw invalid("CATEDRA_BASE_URL");
+        } catch (IllegalArgumentException _) {
+            throw invalid(BASE_URL_SETTING);
         }
         if (!("http".equals(uri.getScheme()) || "https".equals(uri.getScheme()))
                 || uri.getHost() == null || uri.getUserInfo() != null || uri.getQuery() != null
                 || uri.getFragment() != null || uri.getPort() > 65535 || uri.getPort() == 0) {
-            throw invalid("CATEDRA_BASE_URL");
+            throw invalid(BASE_URL_SETTING);
         }
         return new IntegrationProperties(uri, username, password, groupId);
     }

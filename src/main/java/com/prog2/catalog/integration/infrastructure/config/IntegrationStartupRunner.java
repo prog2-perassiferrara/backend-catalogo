@@ -74,9 +74,9 @@ public class IntegrationStartupRunner implements AutoCloseable {
             }
             sessions.replace(IntegrationSession.failed());
             LOGGER.warn("Technical integration unavailable; recovery requires restart");
-        } catch (InterruptedException ignored) {
+        } catch (InterruptedException _) {
             Thread.currentThread().interrupt();
-        } catch (RuntimeException ignored) {
+        } catch (RuntimeException _) {
             sessions.replace(IntegrationSession.failed());
             LOGGER.error("Technical integration initialization failed; recovery requires restart");
         }

@@ -71,7 +71,7 @@ public class WebClientCentralIntegrationAdapter implements CentralIntegrationGat
                     IntegrationState.INITIALIZING, configuration);
         } catch (CentralIntegrationException failure) {
             throw failure;
-        } catch (RuntimeException ignored) {
+        } catch (RuntimeException _) {
             throw invalidResponse();
         }
     }
@@ -84,7 +84,7 @@ public class WebClientCentralIntegrationAdapter implements CentralIntegrationGat
             return configuration(mapper.readValue(payload.body(), IntegrationResponse.class));
         } catch (CentralIntegrationException failure) {
             throw failure;
-        } catch (RuntimeException ignored) {
+        } catch (RuntimeException _) {
             throw invalidResponse();
         }
     }
@@ -107,9 +107,9 @@ public class WebClientCentralIntegrationAdapter implements CentralIntegrationGat
                     .defaultIfEmpty("")
                     .map(body -> new HttpPayload(response.statusCode().value(), body)))
                     .block(requestTimeout);
-        } catch (WebClientRequestException | IllegalStateException ignored) {
+        } catch (WebClientRequestException | IllegalStateException _) {
             throw new CentralIntegrationException(true, "COMMUNICATION_FAILURE");
-        } catch (RuntimeException ignored) {
+        } catch (RuntimeException _) {
             throw invalidResponse();
         }
         if (payload == null) {
@@ -130,7 +130,7 @@ public class WebClientCentralIntegrationAdapter implements CentralIntegrationGat
         try {
             JsonNode node = mapper.readTree(body);
             return node != null && node.has("code") ? node.get("code").asString("") : "";
-        } catch (RuntimeException ignored) {
+        } catch (RuntimeException _) {
             // El anexo admite errores sin JSON o sin code. No interpretar ni registrar detail.
             return "";
         }

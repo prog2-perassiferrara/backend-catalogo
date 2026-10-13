@@ -48,6 +48,26 @@ class IntegrationPropertiesTests {
     }
 
     @Test
+    void acceptsNormalizedGroupsIncludingLengthBoundaries() {
+        for (String groupId : new String[] {"abc", "123", "a-1", "a-b-c",
+                "a".repeat(100), "a-".repeat(49) + "ab"}) {
+            var environment = validEnvironment().withProperty("CATEDRA_GROUP_ID", groupId);
+            assertThat(IntegrationProperties.from(environment).groupId()).isEqualTo(groupId);
+        }
+    }
+
+    @Test
+    void rejectsMalformedAndOutOfRangeGroups() {
+        for (String groupId : new String[] {"ab", "-abc", "abc-", "a--b", "Abc", "a_b", "abé",
+                "a".repeat(101), "a-".repeat(49) + "a-", "a-".repeat(50) + "a",
+                "a-".repeat(10_000) + "!"}) {
+            var environment = validEnvironment().withProperty("CATEDRA_GROUP_ID", groupId);
+            assertThatThrownBy(() -> IntegrationProperties.from(environment))
+                    .isInstanceOf(BeanCreationException.class).hasMessageContaining("CATEDRA_GROUP_ID");
+        }
+    }
+
+    @Test
     void checksContractualLengthsAndNormalizedGroup() {
         var invalidPassword = validEnvironment().withProperty("CATEDRA_PASSWORD", "123");
         assertThatThrownBy(() -> IntegrationProperties.from(invalidPassword)).hasMessageContaining("CATEDRA_PASSWORD");

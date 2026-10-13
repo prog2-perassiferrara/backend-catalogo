@@ -91,7 +91,7 @@ public final class TechnicalIntegrationTestServer implements AutoCloseable {
             exchange.getResponseHeaders().set("Content-Type", "application/json");
             exchange.sendResponseHeaders(response.status(), body.length);
             exchange.getResponseBody().write(body);
-        } catch (InterruptedException ignored) {
+        } catch (InterruptedException _) {
             Thread.currentThread().interrupt();
         }
     }
