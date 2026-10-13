@@ -158,6 +158,37 @@ class IntegrationBehaviorTests {
     }
 
     @Test
+    void rejectsMalformedConfigurationAfterPendingWithoutExposingResponse(CapturedOutput output) {
+        server.respond(200, login(TOKEN, "PENDING"));
+        server.respond(200, "not-json " + PASSWORD + " " + TOKEN);
+
+        assertThat(initialize.initialize().outcome()).isEqualTo(AttemptOutcome.RETRYABLE);
+        var result = initialize.initialize();
+
+        assertThat(result.outcome()).isEqualTo(AttemptOutcome.TERMINAL);
+        assertThat(result.safeDiagnostic()).isEqualTo("INVALID_CENTRAL_RESPONSE");
+        assertThat(sessions.get().state()).isEqualTo(IntegrationState.FAILED);
+        assertThatThrownBy(tokens::getToken).isInstanceOf(IntegrationUnavailableException.class);
+        assertThat(server.requests()).hasSize(2);
+        assertThat(server.requests().getLast().method()).isEqualTo("GET");
+        assertThat(server.requests().getLast().authorization()).isEqualTo("Bearer " + TOKEN);
+        assertThat(output).doesNotContain(PASSWORD, TOKEN);
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = {401, 503})
+    void classifiesNonJsonErrorsByHttpStatusWithoutExposingBody(int status, CapturedOutput output) {
+        server.respond(status, "upstream error " + PASSWORD + " " + TOKEN);
+
+        var result = initialize.initialize();
+
+        assertThat(result.outcome()).isEqualTo(status == 503 ? AttemptOutcome.RETRYABLE : AttemptOutcome.TERMINAL);
+        assertThat(result.safeDiagnostic()).isEqualTo("CENTRAL_HTTP_" + status);
+        assertThat(server.requests()).hasSize(1);
+        assertThat(output).doesNotContain(PASSWORD, TOKEN);
+    }
+
+    @Test
     void stopsExactlyAtThreeAttemptsAndRequiresNewSessionForRecovery() throws Exception {
         server.respond(500, "{}");
         server.respond(503, "{}");
