@@ -21,7 +21,7 @@ public final class TechnicalIntegrationTestServer implements AutoCloseable {
 
     public static final String PASSWORD = "fictional-technical-password";
     public static final String REDIS_PASSWORD = "fictional-redis-password";
-    public static final String TOKEN = token("{\"exp\":4102444800}");
+    public static final String TOKEN = fictionalToken("{\"exp\":4102444800}");
     private final HttpServer server;
     private final ExecutorService executor = Executors.newCachedThreadPool();
     private final BlockingQueue<Response> responses = new LinkedBlockingQueue<>();
@@ -102,7 +102,7 @@ public final class TechnicalIntegrationTestServer implements AutoCloseable {
         executor.shutdownNow();
     }
 
-    public static String token(String claims) {
+    public static String fictionalToken(String claims) {
         Base64.Encoder encoder = Base64.getUrlEncoder().withoutPadding();
         return encoder.encodeToString("{\"alg\":\"HS256\",\"typ\":\"JWT\"}"
                 .getBytes(StandardCharsets.UTF_8)) + "."

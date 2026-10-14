@@ -4,6 +4,9 @@
 .vscode
 .env
 .env.*
+keys
+*.pem
+*.key
 target
 docs
 *.log

@@ -1,11 +1,13 @@
 package com.prog2.catalog;
 
+import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -15,7 +17,6 @@ import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.WebApplicationType;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -27,12 +28,14 @@ import org.springframework.core.env.StandardEnvironment;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.context.TestConstructor;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.mysql.MySQLContainer;
 
 import com.prog2.catalog.integration.TechnicalIntegrationTestServer;
 import com.prog2.catalog.integration.domain.ports.in.GetTechnicalTokenUseCase;
+import com.prog2.catalog.security.JwtTestTokens;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -40,6 +43,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 @Testcontainers
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ExtendWith(OutputCaptureExtension.class)
+@TestConstructor(autowireMode = TestConstructor.AutowireMode.ALL)
 class CatalogApplicationTests {
 
     private static final String TEST_PASSWORD = "fictional-test-password";
@@ -76,19 +80,24 @@ class CatalogApplicationTests {
         registry.add("CATEDRA_USERNAME", () -> "test-user");
         registry.add("CATEDRA_PASSWORD", () -> TechnicalIntegrationTestServer.PASSWORD);
         registry.add("CATEDRA_GROUP_ID", () -> "test-group");
+        registry.add("JWT_PUBLIC_KEY_PATH", () -> JwtTestTokens.PUBLIC_KEY_PATH.toString());
     }
 
     @LocalServerPort
     private int port;
 
-    @Autowired
-    private JdbcTemplate jdbc;
+    private final JdbcTemplate jdbc;
 
-    @Autowired
-    private GetTechnicalTokenUseCase technicalTokens;
+    private final GetTechnicalTokenUseCase technicalTokens;
+
+    /** Spring entrega los beans del contexto real mediante el constructor de la prueba. */
+    CatalogApplicationTests(JdbcTemplate jdbc, GetTechnicalTokenUseCase technicalTokens) {
+        this.jdbc = jdbc;
+        this.technicalTokens = technicalTokens;
+    }
 
     @Test
-    void authenticatesAtStartupAndKeepsInternalTokenEndpointUnpublished() throws Exception {
+    void authenticatesAtStartupAndProtectsInternalTokenEndpoint() throws Exception {
         CENTRAL.awaitRequest();
         // Esperar una condición observable, sin adivinar cuánto demora el arranque asíncrono.
         org.awaitility.Awaitility.await().atMost(Duration.ofSeconds(5))
@@ -97,7 +106,20 @@ class CatalogApplicationTests {
                 assertThat(technicalTokens.getToken()).isEqualTo(TechnicalIntegrationTestServer.TOKEN));
         assertThat(CENTRAL.requests()).hasSize(1);
         assertThat(CENTRAL.requests().getFirst().path()).isEqualTo("/api/authenticate");
-        assertThat(get("/api/internal/catedra/token").statusCode()).isEqualTo(404);
+        assertThat(get("/api/internal/catedra/token").statusCode()).isEqualTo(401);
+        var claims = JwtTestTokens.claims("service");
+        Instant issuedAt = Instant.now();
+        claims.put("iat", issuedAt.getEpochSecond());
+        claims.put("exp", issuedAt.plusSeconds(300).getEpochSecond());
+        try (HttpClient client = HttpClient.newHttpClient()) {
+            var request = HttpRequest.newBuilder(URI.create("http://localhost:" + port + "/api/internal/catedra/token"))
+                    .header("Authorization", "Bearer " + JwtTestTokens.signed(claims)).GET().build();
+            var response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            assertThat(response.statusCode()).isEqualTo(200);
+            assertThat(response.body()).isEqualTo("{\"idToken\":\"" + TechnicalIntegrationTestServer.TOKEN + "\"}");
+            assertThat(response.headers().firstValue("Cache-Control")).contains("no-store");
+        }
+        assertThat(CENTRAL.requests()).hasSize(1);
     }
 
     @Test
@@ -115,8 +137,8 @@ class CatalogApplicationTests {
         HttpResponse<String> response = get("/actuator/health");
         assertThat(response.statusCode()).isEqualTo(200);
         assertThat(response.body()).isEqualTo("{\"status\":\"UP\"}");
-        assertThat(get("/actuator/env").statusCode()).isEqualTo(404);
-        assertThat(get("/actuator").statusCode()).isEqualTo(404);
+        assertThat(get("/actuator/env").statusCode()).isEqualTo(401);
+        assertThat(get("/actuator").statusCode()).isEqualTo(401);
     }
 
     @ParameterizedTest
@@ -167,6 +189,16 @@ class CatalogApplicationTests {
 
     @Test
     @Timeout(30)
+    void rejectsMissingVerificationKeyWithoutLoggingSecrets(CapturedOutput output) {
+        Map<String, String> settings = validSettings();
+        settings.remove("JWT_PUBLIC_KEY_PATH");
+        assertStartupFails(settings);
+        assertThat(output).contains("JWT_PUBLIC_KEY_PATH")
+                .doesNotContain(TEST_PASSWORD, TechnicalIntegrationTestServer.PASSWORD);
+    }
+
+    @Test
+    @Timeout(30)
     void keepsHttpAndDatabaseAvailableWhenCentralIsUnavailable(CapturedOutput output) throws Exception {
         try (var unavailable = new TechnicalIntegrationTestServer()) {
             Map<String, String> settings = validSettings();
@@ -208,7 +240,7 @@ class CatalogApplicationTests {
         assertThat(output).contains("Communications link failure").doesNotContain(TEST_PASSWORD);
     }
 
-    private HttpResponse<String> get(String path) throws Exception {
+    private HttpResponse<String> get(String path) throws IOException, InterruptedException {
         try (HttpClient client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(5)).build()) {
             return client.send(HttpRequest.newBuilder(URI.create("http://localhost:" + port + path))
                     .timeout(Duration.ofSeconds(5)).GET().build(), HttpResponse.BodyHandlers.ofString());
@@ -226,6 +258,7 @@ class CatalogApplicationTests {
         settings.put("CATEDRA_USERNAME", "test-user");
         settings.put("CATEDRA_PASSWORD", TechnicalIntegrationTestServer.PASSWORD);
         settings.put("CATEDRA_GROUP_ID", "test-group");
+        settings.put("JWT_PUBLIC_KEY_PATH", JwtTestTokens.PUBLIC_KEY_PATH.toString());
         return settings;
     }
 
