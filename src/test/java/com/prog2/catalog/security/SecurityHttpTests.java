@@ -37,7 +37,8 @@ import org.springframework.test.context.TestConstructor;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
-import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.prog2.catalog.infrastructure.security.config.SecurityConfiguration;
@@ -89,7 +90,7 @@ class SecurityHttpTests {
 
     @DynamicPropertySource
     static void securitySettings(DynamicPropertyRegistry registry) {
-        registry.add("JWT_PUBLIC_KEY_PATH", () -> JwtTestTokens.PUBLIC_KEY_PATH.toString());
+        registry.add("JWT_PUBLIC_KEY_PATH", JwtTestTokens.PUBLIC_KEY_PATH::toString);
         registry.add("CORS_ALLOWED_ORIGINS", () -> "https://app.test");
     }
 
@@ -235,6 +236,27 @@ class SecurityHttpTests {
         verifyNoInteractions(technicalTokens);
     }
 
+    @Test
+    void acceptsBearerPostWithoutCsrfTokenOrSession() throws Exception {
+        String user = JwtTestTokens.signed(JwtTestTokens.claims("user"));
+        var result = mvc.perform(post("/api/test-user")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + user))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.subject").value("fictional-user-42"))
+                .andExpect(header().doesNotExist(HttpHeaders.SET_COOKIE))
+                .andReturn();
+        assertThat(result.getRequest().getSession(false)).isNull();
+        verifyNoInteractions(technicalTokens);
+    }
+
+    @Test
+    void rejectsAnonymousPostWithoutCreatingSession() throws Exception {
+        var result = problem(mvc.perform(post("/api/test-user")), 401, "AUTHENTICATION_REQUIRED")
+                .andExpect(header().doesNotExist(HttpHeaders.SET_COOKIE)).andReturn();
+        assertThat(result.getRequest().getSession(false)).isNull();
+        verifyNoInteractions(technicalTokens);
+    }
+
     @ParameterizedTest
     @ValueSource(strings = {"initial", "failed", "pending", "missing-token", "expired"})
     void returnsUnavailableWithoutRenewalForUnusableCentralSession(String scenario, CapturedOutput output) throws Exception {
@@ -328,7 +350,7 @@ class SecurityHttpTests {
     /** Endpoint solo de prueba para observar identidad sin adelantar APIs de negocio. */
     @RestController
     static class UserProbeController {
-        @GetMapping("/api/test-user")
+        @RequestMapping(path = "/api/test-user", method = {RequestMethod.GET, RequestMethod.POST})
         Map<String, String> user(Authentication identity) {
             return Map.of("subject", identity.getName());
         }

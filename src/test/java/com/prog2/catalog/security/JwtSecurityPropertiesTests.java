@@ -31,7 +31,8 @@ class JwtSecurityPropertiesTests {
 
     @Test
     void rejectsMissingKeyPath() {
-        assertThatThrownBy(() -> JwtSecurityProperties.from(new MockEnvironment()))
+        var settings = new MockEnvironment();
+        assertThatThrownBy(() -> JwtSecurityProperties.from(settings))
                 .isInstanceOf(BeanCreationException.class).hasMessageContaining("JWT_PUBLIC_KEY_PATH")
                 .hasNoCause();
     }
@@ -39,16 +40,16 @@ class JwtSecurityPropertiesTests {
     @ParameterizedTest
     @ValueSource(strings = {" ", "missing-file.pem", "bad\u0000path"})
     void rejectsBlankMissingOrInvalidPathWithoutEchoingIt(String location) {
-        assertThatThrownBy(() -> JwtSecurityProperties.from(environment()
-                .withProperty("JWT_PUBLIC_KEY_PATH", location)))
+        var settings = environment().withProperty("JWT_PUBLIC_KEY_PATH", location);
+        assertThatThrownBy(() -> JwtSecurityProperties.from(settings))
                 .isInstanceOf(BeanCreationException.class).hasMessageContaining("JWT_PUBLIC_KEY_PATH")
                 .hasNoCause();
     }
 
     @Test
     void rejectsDirectoryInsteadOfReadablePublicKey() {
-        assertThatThrownBy(() -> JwtSecurityProperties.from(environment()
-                .withProperty("JWT_PUBLIC_KEY_PATH", directory.toString())))
+        var settings = environment().withProperty("JWT_PUBLIC_KEY_PATH", directory.toString());
+        assertThatThrownBy(() -> JwtSecurityProperties.from(settings))
                 .isInstanceOf(BeanCreationException.class).hasNoCause();
     }
 
@@ -61,8 +62,8 @@ class JwtSecurityPropertiesTests {
                 JwtTestTokens.pem("PUBLIC KEY", JwtTestTokens.rsaKeyPair(1024).getPublic().getEncoded()),
                 JwtTestTokens.pem("PUBLIC KEY", ec.getPublic().getEncoded())}) {
             Path file = Files.writeString(directory.resolve("invalid.pem"), content);
-            assertThatThrownBy(() -> JwtSecurityProperties.from(environment()
-                    .withProperty("JWT_PUBLIC_KEY_PATH", file.toString())))
+            var settings = environment().withProperty("JWT_PUBLIC_KEY_PATH", file.toString());
+            assertThatThrownBy(() -> JwtSecurityProperties.from(settings))
                     .isInstanceOf(BeanCreationException.class).hasMessageContaining("JWT_PUBLIC_KEY_PATH")
                     .hasMessageNotContaining(content).hasNoCause();
         }
@@ -81,8 +82,8 @@ class JwtSecurityPropertiesTests {
             "https://user:fictional-secret@app.test", "https://app.test#fragment",
             "http://app.test:99999", "http://app.test:0", "https://app.test,", "https://app.test,,https://other.test"})
     void rejectsPermissiveOrMalformedOriginsWithoutEchoingThem(String origin) {
-        assertThatThrownBy(() -> JwtSecurityProperties.from(environment()
-                .withProperty("CORS_ALLOWED_ORIGINS", origin)))
+        var settings = environment().withProperty("CORS_ALLOWED_ORIGINS", origin);
+        assertThatThrownBy(() -> JwtSecurityProperties.from(settings))
                 .isInstanceOf(BeanCreationException.class).hasMessageContaining("CORS_ALLOWED_ORIGINS")
                 .hasMessageNotContaining(origin).hasNoCause();
     }

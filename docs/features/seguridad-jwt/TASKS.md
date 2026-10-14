@@ -44,6 +44,18 @@ Cinco tareas para #13. Las pruebas se incorporan con el comportamiento que verif
   - **Referencias:** RF-01 a RF-08; CA-01 a CA-08.
   - **Validación:** ejecutar `./mvnw -B -ntp clean verify` y `git diff --check`; revisar caminos relevantes sin cobertura y feedback de calidad disponible. Sonar CLI tiene la limitación Vortex 403 ya comprobada; no presentarlo como análisis exitoso. Actions/Sonar remotos se revisan después del push del usuario; la integración real con Turnos requiere su consumidor.
 
+## Revisión del PR #17
+
+Consulta remota del 2026-10-14: Actions `Pruebas y análisis` correcto; Quality Gate ERROR únicamente por `new_security_rating = 4` (D). S4502 en `SecurityConfiguration`, línea 92, aparece como VULNERABILITY CRITICAL por desactivar CSRF. La cobertura nueva es 97,1%, duplicación nueva 0% y las otras condiciones pasan. La clasificación remota prevalece sobre el reporte local vacío; este no garantiza ausencia de hallazgos de Cloud.
+
+Se corrigieron los siete avisos adicionales de pruebas: dos S1612 mediante referencias a `PUBLIC_KEY_PATH::toString`, y cinco S5778 preparando `MockEnvironment` antes de la lambda para que solo `JwtSecurityProperties.from` pueda producir la excepción esperada. Se conservan escenarios, datos y aserciones. `./mvnw -o -B -ntp verify`, finalizado 20:26:47 -03:00: BUILD SUCCESS, 128 pruebas correctas.
+
+El usuario autorizó probar CSRF predeterminado. La prueba reprodujo creación de sesión HTTP en un POST anónimo, incompatible con la política acordada; el POST bearer funcionaba sin CSRF ni sesión. Se restauró la configuración original, sin cambios finales en producción. El usuario confirmó conservarla y justificar el falso positivo: API exclusivamente bearer explícito, sin cookies de autenticación, HTTP Basic ni login de formulario. Si cambia ese contrato, revisar la decisión.
+
+Se conservaron dos regresiones en `SecurityHttpTests`: POST bearer válido sin token CSRF devuelve 200 y POST anónimo devuelve 401; ambos sin sesión ni `Set-Cookie`, sin consultar el token central. El controlador adicional existe solo en pruebas. La configuración predeterminada hace fallar la aserción de sesión ausente, por lo que se verificó que la prueba detecta ese cambio.
+
+SonarCloud confirmó el hallazgo `AaE8un9P7UwoqUY3bUsb` como FALSE_POSITIVE y guardó la justificación; Quality Gate OK y seguridad nueva A. GitHub muestra ambos checks SUCCESS. `./mvnw -o -B -ntp verify` finalizó 20:52:14 -03:00 con 130 pruebas correctas, sin fallos/errores/omisiones. SonarQube for IDE HTTP 200 para el archivo de pruebas modificado, sin hallazgos. Escaneo de secretos y `git diff --check` correctos. Pendiente publicar las correcciones de pruebas/evidencia y revisar su nuevo análisis remoto; T-05 conserva su casilla pendiente por esa comprobación.
+
 ## Evidencias de ejecución
 
 Verificado el 2026-10-14 con datos, claves y cátedra ficticios. No se leyó `.env`, no se llamó a cátedra real ni se modificó Git. La publicación corresponde al usuario. T-05 conserva su casilla pendiente por la revisión remota; sus controles locales están completos.

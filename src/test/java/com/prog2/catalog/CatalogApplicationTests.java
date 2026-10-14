@@ -80,7 +80,7 @@ class CatalogApplicationTests {
         registry.add("CATEDRA_USERNAME", () -> "test-user");
         registry.add("CATEDRA_PASSWORD", () -> TechnicalIntegrationTestServer.PASSWORD);
         registry.add("CATEDRA_GROUP_ID", () -> "test-group");
-        registry.add("JWT_PUBLIC_KEY_PATH", () -> JwtTestTokens.PUBLIC_KEY_PATH.toString());
+        registry.add("JWT_PUBLIC_KEY_PATH", JwtTestTokens.PUBLIC_KEY_PATH::toString);
     }
 
     @LocalServerPort
