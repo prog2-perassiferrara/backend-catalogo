@@ -94,3 +94,9 @@ Los reportes reproducibles se generan en `target/surefire-reports/`; `target/` e
 Se corrigieron dos problemas encontrados al verificar: la respuesta de health exponía grupos de probes y una aserción esperaba un encabezado de diagnóstico diferente del emitido por Spring. La configuración final oculta probes/discovery y la prueba de conexión verifica el diagnóstico real de fallo de comunicaciones.
 
 La comprobación Compose se ejecutó con un proyecto separado del entorno de desarrollo para no modificar datos del usuario. Se retiraron los recursos de esa comprobación al terminar. No se probó Windows ni integración central; no se requiere cátedra para ejecutar este setup.
+
+### Corrección de calidad previa a JWT
+
+El 2026-10-14 el usuario autorizó corregir problemas concretos mientras se prepara #13. Para el hallazgo Sonar S1118 se añadió un constructor privado a `DatabaseConfiguration` y Javadoc de responsabilidad; no cambiaron sus validaciones ni el método estático de registro del postprocesador. Se conserva `@Configuration(proxyBeanMethods = false)` y la construcción por Spring, sin ofrecer creación manual de esta configuración.
+
+`./mvnw -B -ntp clean verify` terminó el 2026-10-14 a las 08:24:31 -03:00: BUILD SUCCESS, 63 pruebas, 0 fallos, 0 errores y 0 omitidas. Las 13 pruebas de `CatalogApplicationTests` verificaron arranque real con Spring/MySQL, health y rechazos de configuración/conexión; no se agregó una prueba artificial de visibilidad del constructor. JaCoCo generado y `git diff --check` correcto. La primera solicitud de ejecución fue rechazada por timeout de revisión automática de permisos; el único reintento autorizado ejecutó la verificación correctamente. Pendiente confirmar S1118 en Sonar tras el push del usuario; el análisis local CLI sigue limitado por Vortex 403. Sin commits, push ni otras operaciones Git mutables del agente.

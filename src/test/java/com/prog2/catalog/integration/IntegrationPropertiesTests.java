@@ -37,7 +37,8 @@ class IntegrationPropertiesTests {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"invalid-url", "ftp://central.test", "https://user:fictional-secret@central.test",
+    @ValueSource(strings = {"invalid-url", "https://central.test/%zz", "ftp://central.test",
+            "https://user:fictional-secret@central.test",
             "https://central.test?token=fictional-secret", "https://central.test#fragment",
             "http://central.test:99999"})
     void rejectsInvalidOrCredentialBearingUrlWithoutLoggingIt(String url) {

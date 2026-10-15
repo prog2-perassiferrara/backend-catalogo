@@ -9,8 +9,15 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
 import org.springframework.util.StringUtils;
 
+/**
+ * Valida la configuración obligatoria de MySQL antes de abrir conexiones.
+ * La construcción queda reservada a Spring; no usa proxies de métodos de configuración.
+ */
 @Configuration(proxyBeanMethods = false)
 public class DatabaseConfiguration {
+
+    private DatabaseConfiguration() {
+    }
 
     @Bean
     static BeanFactoryPostProcessor requiredDatabaseSettings(Environment environment) {

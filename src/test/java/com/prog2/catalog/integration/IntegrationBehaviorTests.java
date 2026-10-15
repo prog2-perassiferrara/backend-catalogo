@@ -3,12 +3,13 @@ package com.prog2.catalog.integration;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
-import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.junit.jupiter.api.AfterEach;
@@ -42,7 +43,7 @@ class IntegrationBehaviorTests {
 
     private TechnicalIntegrationTestServer server;
     private final InMemoryIntegrationSessionAdapter sessions = new InMemoryIntegrationSessionAdapter();
-    private final MutableClock clock = new MutableClock(Instant.parse("2026-10-08T12:00:00Z"));
+    private final Clock clock = Clock.fixed(Instant.parse("2026-10-08T12:00:00Z"), ZoneOffset.UTC);
     private InitializeIntegrationUseCaseImpl initialize;
     private GetTechnicalTokenUseCaseImpl tokens;
 
@@ -158,6 +159,37 @@ class IntegrationBehaviorTests {
     }
 
     @Test
+    void rejectsMalformedConfigurationAfterPendingWithoutExposingResponse(CapturedOutput output) {
+        server.respond(200, login(TOKEN, "PENDING"));
+        server.respond(200, "not-json " + PASSWORD + " " + TOKEN);
+
+        assertThat(initialize.initialize().outcome()).isEqualTo(AttemptOutcome.RETRYABLE);
+        var result = initialize.initialize();
+
+        assertThat(result.outcome()).isEqualTo(AttemptOutcome.TERMINAL);
+        assertThat(result.safeDiagnostic()).isEqualTo("INVALID_CENTRAL_RESPONSE");
+        assertThat(sessions.get().state()).isEqualTo(IntegrationState.FAILED);
+        assertThatThrownBy(tokens::getToken).isInstanceOf(IntegrationUnavailableException.class);
+        assertThat(server.requests()).hasSize(2);
+        assertThat(server.requests().getLast().method()).isEqualTo("GET");
+        assertThat(server.requests().getLast().authorization()).isEqualTo("Bearer " + TOKEN);
+        assertThat(output).doesNotContain(PASSWORD, TOKEN);
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = {401, 503})
+    void classifiesNonJsonErrorsByHttpStatusWithoutExposingBody(int status, CapturedOutput output) {
+        server.respond(status, "upstream error " + PASSWORD + " " + TOKEN);
+
+        var result = initialize.initialize();
+
+        assertThat(result.outcome()).isEqualTo(status == 503 ? AttemptOutcome.RETRYABLE : AttemptOutcome.TERMINAL);
+        assertThat(result.safeDiagnostic()).isEqualTo("CENTRAL_HTTP_" + status);
+        assertThat(server.requests()).hasSize(1);
+        assertThat(output).doesNotContain(PASSWORD, TOKEN);
+    }
+
+    @Test
     void stopsExactlyAtThreeAttemptsAndRequiresNewSessionForRecovery() throws Exception {
         server.respond(500, "{}");
         server.respond(503, "{}");
@@ -186,7 +218,7 @@ class IntegrationBehaviorTests {
         assertThat(server.requests().getLast().authorization()).isEqualTo("Bearer " + TOKEN);
     }
 
-    private void runCycle(Duration delay) throws Exception {
+    private void runCycle(Duration delay) throws InterruptedException, ExecutionException, TimeoutException {
         ExecutorService executor = Executors.newSingleThreadExecutor();
         try (var runner = new IntegrationStartupRunner(initialize, sessions, executor, delay)) {
             runner.onApplicationReady();
@@ -239,14 +271,14 @@ class IntegrationBehaviorTests {
 
     @Test
     void expiresExactlyAtExpWithoutNewLoginAndStaysFailedAfterClockMovesBack() {
-        String token = token("{\"exp\":" + clock.instant().plusSeconds(60).getEpochSecond() + "}");
+        String token = fictionalToken("{\"exp\":" + clock.instant().plusSeconds(60).getEpochSecond() + "}");
         server.respond(200, login(token, "PROVISIONED"));
         assertThat(initialize.initialize().outcome()).isEqualTo(AttemptOutcome.AVAILABLE);
-        clock.advance(Duration.ofSeconds(59));
-        assertThat(tokens.getToken()).isEqualTo(token);
-        clock.advance(Duration.ofSeconds(1));
-        assertThatThrownBy(tokens::getToken).isInstanceOf(IntegrationUnavailableException.class);
-        clock.advance(Duration.ofSeconds(-60));
+        var beforeExpiry = new GetTechnicalTokenUseCaseImpl(sessions, Clock.offset(clock, Duration.ofSeconds(59)));
+        assertThat(beforeExpiry.getToken()).isEqualTo(token);
+        var atExpiry = new GetTechnicalTokenUseCaseImpl(sessions, Clock.offset(clock, Duration.ofSeconds(60)));
+        assertThatThrownBy(atExpiry::getToken).isInstanceOf(IntegrationUnavailableException.class);
+        // La consulta con el reloj inicial no debe reabrir la sesión ya invalidada.
         assertThatThrownBy(tokens::getToken).isInstanceOf(IntegrationUnavailableException.class);
         assertThat(initialize.initialize().outcome()).isEqualTo(AttemptOutcome.TERMINAL);
         assertThat(server.requests()).hasSize(1);
@@ -255,7 +287,7 @@ class IntegrationBehaviorTests {
     @ParameterizedTest
     @ValueSource(strings = {"{}", "{\"exp\":4102444800}"})
     void rejectsAcquiredTokenOn401RegardlessOfExpWithoutRenewing(String claims) {
-        String token = token(claims);
+        String token = fictionalToken(claims);
         server.respond(200, login(token, "PENDING"));
         server.respond(401, "{}");
         assertThat(initialize.initialize().outcome()).isEqualTo(AttemptOutcome.RETRYABLE);
@@ -266,22 +298,14 @@ class IntegrationBehaviorTests {
 
     @Test
     void acceptsMissingExpAndRejectsAlreadyExpiredOrMalformedExp() {
-        server.respond(200, login(token("{}"), "PROVISIONED"));
+        server.respond(200, login(fictionalToken("{}"), "PROVISIONED"));
         assertThat(initialize.initialize().outcome()).isEqualTo(AttemptOutcome.AVAILABLE);
-        assertThat(tokens.getToken()).isEqualTo(token("{}"));
+        assertThat(tokens.getToken()).isEqualTo(fictionalToken("{}"));
         for (String claims : new String[] {"{\"exp\":1}", "{\"exp\":\"invalid\"}", "{\"exp\":null}"}) {
             sessions.replace(IntegrationSession.initial());
-            server.respond(200, login(token(claims), "PROVISIONED"));
+            server.respond(200, login(fictionalToken(claims), "PROVISIONED"));
             assertThat(initialize.initialize().outcome()).isEqualTo(AttemptOutcome.TERMINAL);
         }
     }
 
-    private static class MutableClock extends Clock {
-        private Instant now;
-        MutableClock(Instant now) { this.now = now; }
-        void advance(Duration duration) { now = now.plus(duration); }
-        @Override public ZoneId getZone() { return ZoneOffset.UTC; }
-        @Override public Clock withZone(ZoneId zone) { return Clock.fixed(now, zone); }
-        @Override public Instant instant() { return now; }
-    }
 }

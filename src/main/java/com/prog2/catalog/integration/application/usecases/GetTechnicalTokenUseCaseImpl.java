@@ -12,7 +12,7 @@ import com.prog2.catalog.integration.domain.ports.out.IntegrationSessionReposito
 /**
  * Consulta el acceso técnico existente y descarta la sesión al detectar su vencimiento.
  * Depende del puerto de almacenamiento y de un reloj inyectado para evaluar la vigencia.
- * La entrega HTTP protegida a Turnos se incorpora en la funcionalidad de seguridad.
+ * El adaptador HTTP protegido reutiliza esta comprobación para entregar el token a Turnos.
  */
 @Component
 public class GetTechnicalTokenUseCaseImpl implements GetTechnicalTokenUseCase {
