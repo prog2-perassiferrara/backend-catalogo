@@ -6,7 +6,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.BeanCreationException;
 import org.springframework.mock.env.MockEnvironment;
 
-import com.prog2.catalog.integration.infrastructure.config.IntegrationProperties;
+import com.prog2.catalog.infrastructure.config.IntegrationProperties;
 
 import static org.assertj.core.api.Assertions.*;
 

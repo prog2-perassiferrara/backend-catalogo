@@ -1,4 +1,4 @@
-package com.prog2.catalog.integration.infrastructure.config;
+package com.prog2.catalog.infrastructure.config;
 
 import java.net.URI;
 
@@ -6,7 +6,8 @@ import org.springframework.beans.factory.BeanCreationException;
 import org.springframework.core.env.Environment;
 
 /**
- * Parámetros locales suministrados para autenticar la cuenta técnica registrada manualmente.
+ * Configuración local de conexión a cátedra, compartida fuera de los slices.
+ * Incluye las credenciales de la cuenta técnica registrada manualmente.
  * Spring los obtiene del entorno del proceso; Compose se encarga de suministrar los valores de .env.
  * La representación de texto oculta los valores para evitar divulgar credenciales.
  *

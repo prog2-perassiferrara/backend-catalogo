@@ -304,6 +304,11 @@ permanecen separados. El slice `integration` separa modelos/puertos, casos de us
 y adaptadores HTTP/memoria/arranque. Su sesión inmutable se reemplaza atómicamente;
 no agrega tablas ni migraciones.
 
+`infrastructure/config` fuera de los slices contiene `IntegrationProperties` y
+`CatalogConfiguration`: parámetros locales de cátedra, validación temprana y reloj
+UTC compartido. El cliente y el runner técnicos se conectan en la configuración
+propia de `integration`; la sesión dinámica permanece dentro de ese slice.
+
 Documentación: [SPEC](docs/features/setup-backend/SPEC.md),
 [PLAN](docs/features/setup-backend/PLAN.md) y [TASKS](docs/features/setup-backend/TASKS.md).
 

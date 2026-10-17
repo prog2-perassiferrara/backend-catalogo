@@ -217,7 +217,8 @@ Señala impacto sobre modelos, contratos o componentes compartidos. -->
 | `integration/infrastructure/client/dto/` | Crear | DTO externos y conversión a modelos del dominio. | RF-02, RF-04, RF-05 |
 | `pom.xml` | Modificar | Agregar `spring-boot-starter-webflux` para disponer de WebClient, con versión gestionada por el BOM actual. | RF-02 |
 | `integration/infrastructure/persistence/adapter/` | Crear | Repositorio en memoria; lectura/reemplazo de una sesión completa, sin tablas ni migraciones. | RF-03, RF-04 |
-| `integration/infrastructure/config/` | Crear | Validar propiedades, construir cliente y ejecutar el ciclo limitado en su propia tarea; cerrar estado no disponible al agotarlo. | RF-04, RF-06 |
+| `infrastructure/config/` | Modificar | Propiedades locales de cátedra, validación temprana y reloj UTC compartidos fuera de los slices. | RF-04, RF-06 |
+| `integration/infrastructure/config/` | Crear | Construir cliente y ejecutar el ciclo limitado en su propia tarea; cerrar estado no disponible al agotarlo. | RF-04, RF-06 |
 | `.env.example`, `compose.yaml` | Modificar | Externalizar parámetros y suministrarlos al proceso; ejemplos con secretos vacíos. | RF-04, RF-06 |
 | `src/test/java/com/prog2/catalog/integration/` | Crear | Pruebas de comportamiento del slice y sus adaptadores. | CA-01 a CA-11 |
 | `CatalogApplicationTests.java` | Modificar solo lo necesario | Proporcionar configuración y servidor HTTP ficticio controlado, sin depender de cátedra real. | Regresión del setup |

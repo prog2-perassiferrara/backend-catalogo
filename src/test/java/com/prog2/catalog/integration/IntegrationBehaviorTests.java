@@ -30,7 +30,7 @@ import com.prog2.catalog.integration.domain.enums.AttemptOutcome;
 import com.prog2.catalog.integration.domain.enums.IntegrationState;
 import com.prog2.catalog.integration.domain.model.IntegrationSession;
 import com.prog2.catalog.integration.infrastructure.client.adapter.WebClientCentralIntegrationAdapter;
-import com.prog2.catalog.integration.infrastructure.config.IntegrationProperties;
+import com.prog2.catalog.infrastructure.config.IntegrationProperties;
 import com.prog2.catalog.integration.infrastructure.config.IntegrationStartupRunner;
 import com.prog2.catalog.integration.infrastructure.persistence.adapter.InMemoryIntegrationSessionAdapter;
 
