@@ -66,7 +66,7 @@ Un único diagrama muestra las piezas principales de #6. Se incluyen las operaci
 ```mermaid
 classDiagram
 direction TB
-class IntegrationStartupRunner {
+class CatalogStartupRunner {
   -ExecutorService executor
   +onApplicationReady() void
   +close() void
@@ -81,6 +81,13 @@ class InitializeIntegrationUseCaseImpl {
 class GetTechnicalTokenUseCase {
   <<interface>>
   +getToken() String
+}
+class InvalidateTechnicalAccessUseCase {
+  <<interface>>
+  +invalidate() void
+}
+class InvalidateTechnicalAccessUseCaseImpl {
+  +invalidate() void
 }
 class GetTechnicalTokenUseCaseImpl {
   -Clock clock
@@ -121,8 +128,10 @@ class InitializationResult {
   -AttemptOutcome outcome
   -String safeDiagnostic
 }
-IntegrationStartupRunner --> InitializeIntegrationUseCase : ejecuta intentos
-IntegrationStartupRunner --> IntegrationSessionRepository : cierra estado al agotar intentos
+CatalogStartupRunner --> InitializeIntegrationUseCase : ejecuta intentos
+CatalogStartupRunner --> InvalidateTechnicalAccessUseCase : cierra acceso al agotar intentos
+InvalidateTechnicalAccessUseCaseImpl ..|> InvalidateTechnicalAccessUseCase
+InvalidateTechnicalAccessUseCaseImpl --> IntegrationSessionRepository : descarta sesión
 InitializeIntegrationUseCaseImpl ..|> InitializeIntegrationUseCase
 GetTechnicalTokenUseCaseImpl ..|> GetTechnicalTokenUseCase
 WebClientCentralIntegrationAdapter ..|> CentralIntegrationGateway
@@ -137,6 +146,10 @@ InitializeIntegrationUseCase ..> InitializationResult : devuelve
 
 **Cómo leerlo:** el runner inicia el trabajo; la implementación del caso de uso consulta cátedra mediante el gateway y guarda la sesión mediante el repositorio. Los adaptadores implementan esas interfaces. La consulta del token comprueba si la sesión es utilizable y no inicia otro login.
 
+Actualización de CU-01: el coordinador actual es `infrastructure/startup/CatalogStartupRunner`,
+fuera del slice. El diagrama mantiene el foco en el acceso técnico; la carga posterior
+se muestra en el [PLAN de snapshot](../snapshot-catalogo/PLAN.md).
+
 `+` indica público y `-` privado. La línea discontinua con triángulo indica implementación de una interfaz; la flecha continua, una referencia entre objetos; el rombo lleno, composición. `0..1` permite que todavía no exista sesión o configuración. Las referencias inyectadas están representadas por las flechas, sin repetirlas todas como atributos.
 
 Puertos y modelos pertenecen al dominio; las clases `UseCaseImpl`, a aplicación; runner y adaptadores, a infraestructura. `IntegrationConfiguration` conserva los campos de REST/Redis/Kafka necesarios para Catálogo, aunque aquí solo se muestran dos para facilitar la lectura. No hay entidades JPA en esta funcionalidad.
@@ -149,9 +162,10 @@ Los participantes internos son instancias de las clases anteriores (`nombre: Cla
 sequenceDiagram
 autonumber
 participant Spring as Spring Boot
-participant Startup as startup: IntegrationStartupRunner
+participant Startup as startup: CatalogStartupRunner
 participant Init as init: InitializeIntegrationUseCaseImpl
 participant Sessions as sessions: InMemoryIntegrationSessionAdapter
+participant Invalidate as invalidate: InvalidateTechnicalAccessUseCaseImpl
 participant Client as client: WebClientCentralIntegrationAdapter
 participant Central as Servicio de cátedra
 
@@ -180,7 +194,8 @@ loop Hasta 3 intentos, detener en AVAILABLE o TERMINAL
   end
 end
 opt Límite agotado sin acceso
-  Startup->>Sessions: replace(session con estado FAILED)
+  Startup->>Invalidate: invalidate()
+  Invalidate->>Sessions: replace(session con estado FAILED)
 end
 Note over Startup,Sessions: Sin acceso, backend activo y recuperación tras reiniciar
 ```
@@ -218,7 +233,8 @@ Señala impacto sobre modelos, contratos o componentes compartidos. -->
 | `pom.xml` | Modificar | Agregar `spring-boot-starter-webflux` para disponer de WebClient, con versión gestionada por el BOM actual. | RF-02 |
 | `integration/infrastructure/persistence/adapter/` | Crear | Repositorio en memoria; lectura/reemplazo de una sesión completa, sin tablas ni migraciones. | RF-03, RF-04 |
 | `infrastructure/config/` | Modificar | Propiedades locales de cátedra, validación temprana y reloj UTC compartidos fuera de los slices. | RF-04, RF-06 |
-| `integration/infrastructure/config/` | Crear | Construir cliente y ejecutar el ciclo limitado en su propia tarea; cerrar estado no disponible al agotarlo. | RF-04, RF-06 |
+| `integration/infrastructure/config/` | Crear | Construir el cliente técnico con propiedades compartidas. | RF-04, RF-06 |
+| `infrastructure/startup/` | Trasladar al incorporar CU-01 | Coordinar ciclo técnico y posterior snapshot mediante puertos públicos; cerrar acceso al agotar intentos. | RF-04, RF-06 |
 | `.env.example`, `compose.yaml` | Modificar | Externalizar parámetros y suministrarlos al proceso; ejemplos con secretos vacíos. | RF-04, RF-06 |
 | `src/test/java/com/prog2/catalog/integration/` | Crear | Pruebas de comportamiento del slice y sus adaptadores. | CA-01 a CA-11 |
 | `CatalogApplicationTests.java` | Modificar solo lo necesario | Proporcionar configuración y servidor HTTP ficticio controlado, sin depender de cátedra real. | Regresión del setup |

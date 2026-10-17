@@ -31,7 +31,10 @@ import com.prog2.catalog.integration.domain.enums.IntegrationState;
 import com.prog2.catalog.integration.domain.model.IntegrationSession;
 import com.prog2.catalog.integration.infrastructure.client.adapter.WebClientCentralIntegrationAdapter;
 import com.prog2.catalog.infrastructure.config.IntegrationProperties;
-import com.prog2.catalog.integration.infrastructure.config.IntegrationStartupRunner;
+import com.prog2.catalog.infrastructure.startup.CatalogStartupRunner;
+import com.prog2.catalog.integration.application.usecases.InvalidateTechnicalAccessUseCaseImpl;
+import com.prog2.catalog.synchronization.domain.enums.SynchronizationPhase;
+import com.prog2.catalog.synchronization.domain.model.SynchronizationResult;
 import com.prog2.catalog.integration.infrastructure.persistence.adapter.InMemoryIntegrationSessionAdapter;
 
 import static com.prog2.catalog.integration.TechnicalIntegrationTestServer.*;
@@ -220,7 +223,7 @@ class IntegrationBehaviorTests {
 
     private void runCycle(Duration delay) throws InterruptedException, ExecutionException, TimeoutException {
         ExecutorService executor = Executors.newSingleThreadExecutor();
-        try (var runner = new IntegrationStartupRunner(initialize, sessions, executor, delay)) {
+        try (var runner = runner(executor, delay)) {
             runner.onApplicationReady();
             executor.submit(() -> { }).get(5, TimeUnit.SECONDS);
             runner.onApplicationReady();
@@ -237,7 +240,7 @@ class IntegrationBehaviorTests {
             worker.set(thread);
             return thread;
         });
-        var runner = new IntegrationStartupRunner(initialize, sessions, executor, Duration.ofSeconds(5));
+        var runner = runner(executor, Duration.ofSeconds(5));
         try (runner) {
             runner.onApplicationReady();
             server.awaitRequest();
@@ -260,6 +263,12 @@ class IntegrationBehaviorTests {
         } finally {
             release.countDown();
         }
+    }
+
+    private CatalogStartupRunner runner(ExecutorService executor, Duration delay) {
+        return new CatalogStartupRunner(initialize, new InvalidateTechnicalAccessUseCaseImpl(sessions),
+                () -> new SynchronizationResult(SynchronizationPhase.SNAPSHOT_APPLIED, 1, "SNAPSHOT_APPLIED"),
+                executor, delay);
     }
 
     @Test

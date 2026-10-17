@@ -1,11 +1,18 @@
 package com.prog2.catalog.infrastructure.config;
 
 import java.time.Clock;
+import java.time.Duration;
+import java.util.concurrent.Executors;
 
 import org.springframework.beans.factory.config.BeanFactoryPostProcessor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
+
+import com.prog2.catalog.infrastructure.startup.CatalogStartupRunner;
+import com.prog2.catalog.integration.domain.ports.in.InitializeIntegrationUseCase;
+import com.prog2.catalog.integration.domain.ports.in.InvalidateTechnicalAccessUseCase;
+import com.prog2.catalog.synchronization.domain.ports.in.SynchronizeCatalogUseCase;
 
 /**
  * Proporciona las propiedades locales de cátedra y el reloj UTC compartidos por el backend.
@@ -31,5 +38,13 @@ public class CatalogConfiguration {
     @Bean
     Clock integrationClock() {
         return Clock.systemUTC();
+    }
+
+    @Bean(destroyMethod = "close")
+    CatalogStartupRunner catalogStartupRunner(InitializeIntegrationUseCase initialize,
+            InvalidateTechnicalAccessUseCase invalidation, SynchronizeCatalogUseCase synchronization) {
+        return new CatalogStartupRunner(initialize, invalidation, synchronization,
+                Executors.newSingleThreadExecutor(Thread.ofPlatform().name("catalog-integration").factory()),
+                Duration.ofSeconds(5));
     }
 }

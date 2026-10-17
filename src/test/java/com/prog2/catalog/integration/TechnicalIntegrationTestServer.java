@@ -77,8 +77,12 @@ public final class TechnicalIntegrationTestServer implements AutoCloseable {
         arrivals.add(request);
         Response response = responses.poll();
         if (response == null) {
-            response = new Response(defaultBody == null ? 503 : 200,
-                    defaultBody == null ? "{}" : defaultBody, null, false);
+            String body = defaultBody;
+            if (defaultBody != null && request.path().equals("/api/synchronization/snapshot")) {
+                body = com.prog2.catalog.synchronization.SnapshotFixtures.json(7);
+            }
+            response = new Response(body == null ? 503 : 200,
+                    body == null ? "{}" : body, null, false);
         }
         try (exchange) {
             if (response.disconnect()) {
