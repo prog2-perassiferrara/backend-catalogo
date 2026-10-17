@@ -101,7 +101,7 @@ chmod 644 "$HOME/.local/share/prog2/turnos-keys/public.pem"
 En `.env`, definir `JWT_PUBLIC_KEY_PATH` con la **ruta absoluta a `public.pem`**.
 La pública debe ser legible por el usuario del contenedor (UID 10001); no es secreta.
 La privada permanece restringida al emisor y nunca se monta en Catálogo.
-Compose monta la pública en `/run/keys/turnos-public.pem`, sin crearla si falta;
+Compose monta la pública en `/run/keys/public.pem`, sin crearla si falta;
 el backend rechaza claves privadas, PEM inválidos y RSA menores a 2048 bits.
 Los archivos locales `keys/`, `*.pem` y `*.key` están excluidos de Git y del build Docker.
 
@@ -159,6 +159,18 @@ Los JWT propios anteriores dejan de aceptarse; no cambia el JWT de cátedra.
 La implementación y prueba del consumidor real corresponden a Turnos.
 
 ## Ejecutar todo con Compose
+
+Una vez por máquina, crear la red compartida con Turnos. Si ya existe, omitirlo:
+
+```bash
+docker network create prog2-services
+```
+
+Los dos Compose declaran esta red como externa. Al hacer `up`, cada aplicación
+se conecta automáticamente a ella y a su red propia con MySQL; las bases quedan
+solo en las redes de sus respectivos proyectos. `down` no elimina la red externa.
+Turnos utiliza `http://catalog:8080` entre contenedores; desde el host Catálogo
+sigue disponible por el puerto publicado, por defecto `localhost:8080`.
 
 ```bash
 docker compose up --build -d
