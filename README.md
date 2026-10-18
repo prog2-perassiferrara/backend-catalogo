@@ -11,7 +11,8 @@ Base técnica del backend, con Java 25, Spring Boot 4.1.1, Maven 3.10.0,
 MySQL 8.4.8, JPA/Hibernate y Flyway. Incluye health y pruebas de integración.
 Incluye autenticación técnica ante cátedra y configuración de integración en memoria.
 Valida JWT RS256 de Turnos y entrega el token técnico mediante un endpoint protegido.
-La emisión de JWT y el registro/login de usuarios corresponden a Turnos; la sincronización del catálogo sigue pendiente.
+La emisión de JWT y el registro/login de usuarios corresponden a Turnos.
+Descarga y aplica un snapshot completo de catálogo en cada arranque; los incrementos siguen pendientes.
 
 ## Requisitos
 
@@ -72,9 +73,38 @@ lo rechaza con 401, se invalida el acceso sin renovar automáticamente. No se
 comprueba la firma al leer `exp`; cátedra valida el token en sus APIs.
 
 El JWT se comparte con Turnos mediante el endpoint protegido descrito abajo.
-Redis, Kafka y la réplica de catálogo
-se implementarán en sus propias funcionalidades; adquirir configuración no
-demuestra que esas conexiones estén disponibles.
+Redis y Kafka se implementarán en sus propias funcionalidades; adquirir
+configuración no demuestra que esas conexiones estén disponibles.
+
+## Carga completa del catálogo
+
+Después del acceso técnico disponible, el mismo hilo solicita
+`GET /api/synchronization/snapshot`, incluso si MySQL ya conserva una copia.
+No hace otro login. Valida campos, tipos, IDs únicos y referencias antes de guardar;
+conserva también las entidades deshabilitadas y rechaza versiones menores.
+
+La descarga tiene límites de 5 s de conexión, 10 s de lectura, 20 s globales y
+8 MiB de respuesta. Su ciclo admite tres intentos totales, con pausas de 5 s,
+para fallos temporales de HTTP o persistencia. Si ya obtuvo una copia válida,
+reintenta guardarla sin volver a descargarla. Al agotar el límite se recupera
+automáticamente en el próximo arranque.
+
+Categorías, profesionales, horarios y versión se reemplazan en una transacción.
+Un fallo anterior al commit conserva la copia previa. Si se pierde la confirmación,
+se consulta el identificador de aplicación antes de repetir: un timeout no demuestra
+rollback. `catalog_sync_state` conserva la versión y último resultado; una versión
+nula significa ausencia de copia, distinta de un snapshot vacío aplicado.
+
+Los logs muestran `Catalog snapshot: SNAPSHOT_APPLIED` o un diagnóstico seguro.
+Ese estado confirma consistencia en una versión, no vigencia continua frente a
+cambios centrales posteriores. Las APIs de búsqueda, agendas y estado, así como
+Kafka/Redis, corresponden a los próximos casos de uso. Durante carga o fallo se
+conserva la copia anterior; su futura API deberá advertir a KMP y hacer esperar
+a Turnos cuando la operación requiera vigencia. Sin acceso a MySQL, conservar
+los datos no garantiza poder consultarlos.
+
+Los instantes se almacenan en UTC con precisión de microsegundos de MySQL.
+Los horarios usan `LocalTime` y JDBC directo, sin convertirlos según la zona del equipo.
 
 ## Seguridad JWT y entrega a Turnos
 
@@ -108,7 +138,7 @@ chmod 644 "$HOME/.local/share/prog2/turnos-keys/public.pem"
 En `.env`, definir `JWT_PUBLIC_KEY_PATH` con la **ruta absoluta a `public.pem`**.
 La pública debe ser legible por el usuario del contenedor (UID 10001); no es secreta.
 La privada permanece restringida al emisor y nunca se monta en Catálogo.
-Compose monta la pública en `/run/keys/turnos-public.pem`, sin crearla si falta;
+Compose monta la pública en `/run/keys/public.pem`, sin crearla si falta;
 el backend rechaza claves privadas, PEM inválidos y RSA menores a 2048 bits.
 Los archivos locales `keys/`, `*.pem` y `*.key` están excluidos de Git y del build Docker.
 
@@ -166,6 +196,18 @@ Los JWT propios anteriores dejan de aceptarse; no cambia el JWT de cátedra.
 La implementación y prueba del consumidor real corresponden a Turnos.
 
 ## Ejecutar todo con Compose
+
+Una vez por máquina, crear la red compartida con Turnos. Si ya existe, omitirlo:
+
+```bash
+docker network create prog2-services
+```
+
+Los dos Compose declaran esta red como externa. Al hacer `up`, cada aplicación
+se conecta automáticamente a ella y a su red propia con MySQL; las bases quedan
+solo en las redes de sus respectivos proyectos. `down` no elimina la red externa.
+Turnos utiliza `http://catalog:8080` entre contenedores; desde el host Catálogo
+sigue disponible por el puerto publicado, por defecto `localhost:8080`.
 
 ```bash
 docker compose up --build -d
@@ -228,6 +270,9 @@ persistidos, health sin detalles y rechazo de arranque con configuración invál
 o base inaccesible. La integración utiliza un servidor HTTP ficticio: comprueba
 login, estados de aprovisionamiento, errores, límites de reintento, interrupción
 y vencimiento del JWT, sin conectarse a cátedra real.
+La carga completa añade pruebas de contrato, rollback, lectura concurrente en
+`REPEATABLE_READ`, pérdida de conexión, confirmación incierta y reinicios reales
+de contextos sobre la misma base. No se simula una transacción con Mockito.
 Los resultados quedan en `target/surefire-reports/`.
 Las pruebas de seguridad generan pares RSA efímeros y tokens ficticios; ejecutan
 el decoder y los filtros reales, verificando firma, claims, tiempos, separación
@@ -289,15 +334,25 @@ se ubican en `src/main/resources/db/migration/`, con nombres como
 `V1__create_catalog_tables.sql`. Agregar una migración nueva para cada cambio;
 no editar una migración ya aplicada.
 
-No hay entidades ni tablas de negocio en este setup. La migración `setup_probe`
-de `src/test/resources/` sirve únicamente para probar Flyway y no se incluye en
-el JAR ni en la imagen del backend.
+`V2__catalog_snapshot.sql` crea las tres tablas de catálogo y su metadata de
+sincronización. Comienza en V2 para conservar la migración `setup_probe` V1 de
+`src/test/resources/`, que solo se usa en pruebas y no se incluye en el JAR ni
+en la imagen del backend. No renumerar migraciones aplicadas.
 
 El paquete base es `com.prog2.catalog`. Cada funcionalidad tiene sus
 paquetes `domain`, `application` e `infrastructure`; dominio, entidades JPA y DTO
 permanecen separados. El slice `integration` separa modelos/puertos, casos de uso
-y adaptadores HTTP/memoria/arranque. Su sesión inmutable se reemplaza atómicamente;
+y adaptadores HTTP/memoria. Su sesión inmutable se reemplaza atómicamente;
 no agrega tablas ni migraciones.
+
+`infrastructure/config` fuera de los slices contiene `IntegrationProperties` y
+`CatalogConfiguration`: parámetros locales de cátedra, validación temprana y reloj
+UTC compartido. El cliente técnico se conecta en la configuración propia de
+`integration`; la sesión dinámica permanece dentro de ese slice.
+`infrastructure/startup/CatalogStartupRunner` coordina los puertos públicos de
+integración y sincronización. `synchronization` reúne el catálogo, su validación,
+el cliente de snapshot y la persistencia transaccional, sin acceder al repositorio
+de sesión de `integration`.
 
 Documentación: [SPEC](docs/features/setup-backend/SPEC.md),
 [PLAN](docs/features/setup-backend/PLAN.md) y [TASKS](docs/features/setup-backend/TASKS.md).
@@ -307,3 +362,6 @@ Integración técnica: [SPEC](docs/features/integracion-tecnica/SPEC.md),
 
 Seguridad JWT: [SPEC](docs/features/seguridad-jwt/SPEC.md),
 [PLAN](docs/features/seguridad-jwt/PLAN.md) y [TASKS](docs/features/seguridad-jwt/TASKS.md).
+
+Snapshot: [SPEC](docs/features/snapshot-catalogo/SPEC.md),
+[PLAN](docs/features/snapshot-catalogo/PLAN.md) y [TASKS](docs/features/snapshot-catalogo/TASKS.md).

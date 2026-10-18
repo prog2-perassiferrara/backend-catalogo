@@ -23,7 +23,7 @@ import com.prog2.catalog.integration.domain.ports.out.CentralIntegrationGateway;
 import com.prog2.catalog.integration.infrastructure.client.dto.IntegrationResponse;
 import com.prog2.catalog.integration.infrastructure.client.dto.LoginRequest;
 import com.prog2.catalog.integration.infrastructure.client.dto.LoginResponse;
-import com.prog2.catalog.integration.infrastructure.config.IntegrationProperties;
+import com.prog2.catalog.infrastructure.config.IntegrationProperties;
 
 /**
  * Aplica el patrón Adapter al implementar {@link CentralIntegrationGateway} mediante WebClient.

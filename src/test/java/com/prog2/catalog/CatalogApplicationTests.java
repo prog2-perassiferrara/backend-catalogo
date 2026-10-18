@@ -10,6 +10,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.AfterAll;
@@ -36,6 +37,8 @@ import org.testcontainers.mysql.MySQLContainer;
 import com.prog2.catalog.integration.TechnicalIntegrationTestServer;
 import com.prog2.catalog.integration.domain.ports.in.GetTechnicalTokenUseCase;
 import com.prog2.catalog.security.JwtTestTokens;
+import com.prog2.catalog.synchronization.domain.enums.SynchronizationPhase;
+import com.prog2.catalog.synchronization.domain.ports.out.CatalogSnapshotRepository;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -104,8 +107,12 @@ class CatalogApplicationTests {
                 .ignoreExceptionsInstanceOf(com.prog2.catalog.integration.application.exception.IntegrationUnavailableException.class)
                 .untilAsserted(() ->
                 assertThat(technicalTokens.getToken()).isEqualTo(TechnicalIntegrationTestServer.TOKEN));
-        assertThat(CENTRAL.requests()).hasSize(1);
+        org.awaitility.Awaitility.await().atMost(Duration.ofSeconds(5)).untilAsserted(() ->
+                assertThat(jdbc.queryForObject("SELECT applied_version FROM catalog_sync_state WHERE id = 1",
+                        Long.class)).isEqualTo(7L));
+        assertThat(CENTRAL.requests()).hasSize(2);
         assertThat(CENTRAL.requests().getFirst().path()).isEqualTo("/api/authenticate");
+        assertThat(CENTRAL.requests().get(1).path()).isEqualTo("/api/synchronization/snapshot");
         assertThat(get("/api/internal/catedra/token").statusCode()).isEqualTo(401);
         var claims = JwtTestTokens.claims("service");
         Instant issuedAt = Instant.now();
@@ -119,7 +126,7 @@ class CatalogApplicationTests {
             assertThat(response.body()).isEqualTo("{\"idToken\":\"" + TechnicalIntegrationTestServer.TOKEN + "\"}");
             assertThat(response.headers().firstValue("Cache-Control")).contains("no-store");
         }
-        assertThat(CENTRAL.requests()).hasSize(1);
+        assertThat(CENTRAL.requests()).hasSize(2);
     }
 
     @Test
@@ -130,6 +137,64 @@ class CatalogApplicationTests {
         assertThat(jdbc.queryForObject(
                 "SELECT COUNT(*) FROM flyway_schema_history WHERE version = '1' AND success = 1",
                 Integer.class)).isEqualTo(1);
+    }
+
+    @Test
+    @Timeout(30)
+    void eachRestartDownloadsANewSnapshotEvenWhenAConsistentCopyAlreadyExists() throws Exception {
+        org.awaitility.Awaitility.await().atMost(Duration.ofSeconds(5)).untilAsserted(() ->
+                assertThat(jdbc.queryForObject("SELECT applied_version FROM catalog_sync_state WHERE id = 1",
+                        Long.class)).isEqualTo(7L));
+        UUID previous = UUID.fromString(jdbc.queryForObject(
+                "SELECT applied_run_id FROM catalog_sync_state WHERE id = 1", String.class));
+        try (var central = new TechnicalIntegrationTestServer(TechnicalIntegrationTestServer.login(
+                TechnicalIntegrationTestServer.TOKEN, "PROVISIONED"))) {
+            Map<String, String> settings = validSettings();
+            settings.put("CATEDRA_BASE_URL", central.baseUrl().toString());
+            settings.put("server.port", "0");
+            for (int restart = 0; restart < 2; restart++) {
+                UUID oldRunId = previous;
+                try (var context = application(WebApplicationType.SERVLET).run(arguments(settings))) {
+                    var repository = context.getBean(CatalogSnapshotRepository.class);
+                    org.awaitility.Awaitility.await().atMost(Duration.ofSeconds(5)).untilAsserted(() -> {
+                        var state = repository.getState();
+                        assertThat(state.phase()).isEqualTo(SynchronizationPhase.SNAPSHOT_APPLIED);
+                        assertThat(state.appliedRunId()).isNotEqualTo(oldRunId);
+                    });
+                    previous = repository.getState().appliedRunId();
+                }
+            }
+            assertThat(central.requests()).extracting(TechnicalIntegrationTestServer.Request::path)
+                    .containsExactly("/api/authenticate", "/api/synchronization/snapshot",
+                            "/api/authenticate", "/api/synchronization/snapshot");
+        }
+    }
+
+    @Test
+    @Timeout(30)
+    void rejectedSnapshotTokenClosesTechnicalAccessButPreservesThePreviousCopy() throws Exception {
+        org.awaitility.Awaitility.await().atMost(Duration.ofSeconds(5)).untilAsserted(() ->
+                assertThat(jdbc.queryForObject("SELECT applied_version FROM catalog_sync_state WHERE id = 1",
+                        Long.class)).isEqualTo(7L));
+        try (var central = new TechnicalIntegrationTestServer()) {
+            central.respond(200, TechnicalIntegrationTestServer.login(TechnicalIntegrationTestServer.TOKEN, "PROVISIONED"));
+            central.respond(401, "{}");
+            Map<String, String> settings = validSettings();
+            settings.put("CATEDRA_BASE_URL", central.baseUrl().toString());
+            settings.put("server.port", "0");
+            try (var context = application(WebApplicationType.SERVLET).run(arguments(settings))) {
+                var repository = context.getBean(CatalogSnapshotRepository.class);
+                org.awaitility.Awaitility.await().atMost(Duration.ofSeconds(5)).untilAsserted(() ->
+                        assertThat(repository.getState().phase()).isEqualTo(SynchronizationPhase.FAILED));
+                assertThat(repository.getState().appliedVersion()).isEqualTo(7L);
+                GetTechnicalTokenUseCase tokens = context.getBean(GetTechnicalTokenUseCase.class);
+                assertThatThrownBy(tokens::getToken)
+                        .isInstanceOf(com.prog2.catalog.integration.application.exception.IntegrationUnavailableException.class);
+                assertThat(context.isActive()).isTrue();
+                assertThat(central.requests()).extracting(TechnicalIntegrationTestServer.Request::path)
+                        .containsExactly("/api/authenticate", "/api/synchronization/snapshot");
+            }
+        }
     }
 
     @Test

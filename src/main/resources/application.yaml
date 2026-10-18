@@ -10,6 +10,13 @@ spring:
       initialization-fail-timeout: 1
   jpa:
     open-in-view: false
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+        type:
+          # LocalTime conserva la hora de atención sin pasar por java.sql.Time ni cambiar de zona.
+          java_time_use_direct_jdbc: true
     hibernate:
       ddl-auto: validate
   sql:
