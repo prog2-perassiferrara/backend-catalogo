@@ -5,6 +5,7 @@ import java.util.concurrent.CountDownLatch;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import tools.jackson.databind.json.JsonMapper;
 
@@ -40,15 +41,16 @@ class CatalogSnapshotClientTests {
     }
 
     @ParameterizedTest
-    @ValueSource(ints = {400, 401, 403, 404, 500, 503})
-    void classifiesHttpEvenWithoutCodeAndDoesNotRetainSensitiveResponse(int status) throws Exception {
+    @CsvSource({"400, TERMINAL", "401, UNAUTHORIZED", "403, TERMINAL", "404, TERMINAL",
+            "500, TEMPORARY", "503, TEMPORARY"})
+    void classifiesHttpEvenWithoutCodeAndDoesNotRetainSensitiveResponse(int status, SnapshotFailureKind expectedKind)
+            throws Exception {
         try (var server = new TechnicalIntegrationTestServer()) {
             server.respond(status, "fictional-sensitive-body");
             var client = client(server, Duration.ofSeconds(1), Duration.ofSeconds(2), 8192);
             CatalogSnapshotException failure = catchThrowableOfType(
                     () -> client.fetch(TechnicalIntegrationTestServer.TOKEN), CatalogSnapshotException.class);
-            assertThat(failure.kind()).isEqualTo(status == 401 ? SnapshotFailureKind.UNAUTHORIZED
-                    : status >= 500 ? SnapshotFailureKind.TEMPORARY : SnapshotFailureKind.TERMINAL);
+            assertThat(failure.kind()).isEqualTo(expectedKind);
             assertThat(failure).hasNoCause().hasMessageNotContaining("fictional-sensitive-body");
             assertThat(server.requests()).hasSize(1);
         }
@@ -124,7 +126,8 @@ class CatalogSnapshotClientTests {
             exchange.sendResponseHeaders(200, 1000);
             if (!truncate) {
                 try {
-                    release.await(3, java.util.concurrent.TimeUnit.SECONDS);
+                    // El finally de la prueba libera el cuerpo después de comprobar el timeout del cliente.
+                    release.await();
                 } catch (InterruptedException _) {
                     Thread.currentThread().interrupt();
                 }

@@ -19,9 +19,7 @@ public class CatalogSnapshotPersistenceMapper {
     }
 
     public WeeklyScheduleEntity toEntity(WeeklySchedule value) {
-        return new WeeklyScheduleEntity(value.id(), value.professionalId(), value.dayOfWeek(),
-                value.startTime(), value.endTime(), value.slotDurationMinutes(), value.enabled(),
-                value.createdAt(), value.updatedAt());
+        return new WeeklyScheduleEntity(value);
     }
 
     public CatalogState toDomain(CatalogSyncStateEntity value) {

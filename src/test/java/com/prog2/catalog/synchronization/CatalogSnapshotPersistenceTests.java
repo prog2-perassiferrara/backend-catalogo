@@ -219,7 +219,7 @@ class CatalogSnapshotPersistenceTests {
     }
 
     @Test
-    void connectionLossBeforeCommitLeavesThePreviousCopyIntact() throws Exception {
+    void connectionLossBeforeCommitLeavesThePreviousCopyIntact() {
         repository.replace(UUID.randomUUID(), SnapshotFixtures.snapshot(7, 1));
         var aborted = new java.util.concurrent.atomic.AtomicBoolean();
         doAnswer(invocation -> {

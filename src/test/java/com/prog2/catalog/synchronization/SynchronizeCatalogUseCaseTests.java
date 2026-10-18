@@ -129,6 +129,22 @@ class SynchronizeCatalogUseCaseTests {
     }
 
     @Test
+    void aConfirmedCommitStopsTheNextAttemptBeforeDownloadingOrWritingAgain() {
+        when(repository.replace(any(), any())).thenAnswer(invocation -> {
+            when(repository.getState()).thenReturn(state(invocation.getArgument(0),
+                    SynchronizationPhase.SNAPSHOT_APPLIED));
+            throw failure(SnapshotFailureKind.UNCERTAIN);
+        });
+        SynchronizationResult result = cycle().synchronize();
+        assertThat(result.phase()).isEqualTo(SynchronizationPhase.SNAPSHOT_APPLIED);
+        assertThat(result.attempts()).isEqualTo(2);
+        verify(repository).getState();
+        verify(repository).replace(any(), same(candidate));
+        verify(gateway).fetch("fictional-access");
+        verify(repository, never()).finishAttempt(any(), any(), any());
+    }
+
+    @Test
     void reconcilesAnUncertainCommitEvenWhenItOccursOnTheFinalAttempt() {
         when(gateway.fetch("fictional-access")).thenThrow(failure(SnapshotFailureKind.TEMPORARY))
                 .thenThrow(failure(SnapshotFailureKind.TEMPORARY)).thenReturn(candidate);
@@ -167,6 +183,18 @@ class SynchronizeCatalogUseCaseTests {
         assertThat(cycle().synchronize().attempts()).isEqualTo(2);
         verify(repository, times(2)).beginAttempt(any(), eq(SnapshotFixtures.TIME));
         verify(gateway).fetch("fictional-access");
+    }
+
+    @Test
+    void aNewCycleDoesNotReuseThePreviousCandidateOrExecutionId() {
+        var useCase = cycle();
+        assertThat(useCase.synchronize().phase()).isEqualTo(SynchronizationPhase.SNAPSHOT_APPLIED);
+        assertThat(useCase.synchronize().phase()).isEqualTo(SynchronizationPhase.SNAPSHOT_APPLIED);
+        var ids = org.mockito.ArgumentCaptor.forClass(UUID.class);
+        verify(repository, times(2)).replace(ids.capture(), same(candidate));
+        assertThat(ids.getAllValues()).doesNotHaveDuplicates();
+        verify(gateway, times(2)).fetch("fictional-access");
+        verify(repository, times(2)).beginAttempt(any(), eq(SnapshotFixtures.TIME));
     }
 
     @Test
@@ -221,5 +249,25 @@ class SynchronizeCatalogUseCaseTests {
             Thread.interrupted();
         }
         verify(repository, never()).replace(any(), any());
+    }
+
+    @Test
+    void interruptionStopsTheRetryWaitWithoutStartingAnotherWrite() {
+        when(repository.replace(any(), any())).thenAnswer(invocation -> {
+            Thread.currentThread().interrupt();
+            throw failure(SnapshotFailureKind.TEMPORARY);
+        });
+        var useCase = new SynchronizeCatalogUseCaseImpl(gateway, repository, access, clock, Duration.ofSeconds(5));
+        try {
+            SynchronizationResult result = useCase.synchronize();
+            assertThat(result.phase()).isEqualTo(SynchronizationPhase.FAILED);
+            assertThat(result.attempts()).isEqualTo(1);
+            assertThat(result.safeDiagnostic()).isEqualTo("SNAPSHOT_INTERRUPTED");
+            assertThat(Thread.currentThread().isInterrupted()).isTrue();
+        } finally {
+            Thread.interrupted();
+        }
+        verify(repository).replace(any(), same(candidate));
+        verify(gateway).fetch("fictional-access");
     }
 }

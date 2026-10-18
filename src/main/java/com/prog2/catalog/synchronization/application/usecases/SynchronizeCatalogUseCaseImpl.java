@@ -12,7 +12,7 @@ import com.prog2.catalog.synchronization.domain.ports.in.SynchronizeCatalogUseCa
 import com.prog2.catalog.synchronization.domain.ports.out.*;
 
 /**
- * Coordina una carga completa. El bloqueo cubre todo el ciclo, no mantiene abierta una transacción.
+ * Coordina una carga completa. El bloqueo cubre el ciclo completo, no mantiene abierta una transacción.
  * Los tres intentos comparten candidato y runId; HTTP y las pausas ocurren fuera de MySQL.
  */
 public class SynchronizeCatalogUseCaseImpl implements SynchronizeCatalogUseCase {
@@ -46,67 +46,95 @@ public class SynchronizeCatalogUseCaseImpl implements SynchronizeCatalogUseCase 
     }
 
     private SynchronizationResult runCycle(UUID runId) {
-        CatalogSnapshot candidate = null;
-        boolean registered = false;
-        boolean uncertain = false;
-        String diagnostic = "SNAPSHOT_INTERRUPTED";
-        int attempts = 0;
-        for (int attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+        SnapshotCycle cycle = new SnapshotCycle(runId);
+        while (cycle.attempts < MAX_ATTEMPTS && !Thread.currentThread().isInterrupted()) {
+            cycle.attempts++;
+            if (applyAttempt(cycle)) {
+                return applied(cycle.attempts);
+            }
+            if (!retry(cycle)) {
+                break;
+            }
+        }
+        return finishCycle(cycle);
+    }
+
+    /** Cada intento verifica un commit incierto antes de permitir otra escritura. */
+    private boolean applyAttempt(SnapshotCycle cycle) {
+        boolean writing = false;
+        try {
+            if (reconcile(cycle)) {
+                return true;
+            }
+            prepareCandidate(cycle);
             if (Thread.currentThread().isInterrupted()) {
-                break;
+                cycle.retryable = false;
+                return false;
             }
-            attempts = attempt;
-            boolean writing = false;
-            try {
-                if (uncertain) {
-                    if (runId.equals(repository.getState().appliedRunId())) {
-                        return applied(attempt);
-                    }
-                    uncertain = false;
-                }
-                if (!registered) {
-                    repository.beginAttempt(runId, clock.instant());
-                    registered = true;
-                }
-                if (candidate == null) {
-                    candidate = snapshots.fetch(access.getToken());
-                    candidate.validate();
-                }
-                if (Thread.currentThread().isInterrupted()) {
-                    break;
-                }
-                writing = true;
-                repository.replace(runId, candidate);
-                return applied(attempt);
-            } catch (CatalogSnapshotException failure) {
-                diagnostic = failure.getMessage();
-                // Una lectura de reconciliación fallida no borra la incertidumbre anterior.
-                uncertain = uncertain || writing && failure.kind() == SnapshotFailureKind.UNCERTAIN;
-                if (failure.kind() == SnapshotFailureKind.UNAUTHORIZED) {
-                    access.invalidate();
-                    break;
-                }
-                if (failure.kind() == SnapshotFailureKind.TERMINAL) {
-                    break;
-                }
-            }
-            if (attempt < MAX_ATTEMPTS && !pause()) {
-                diagnostic = "SNAPSHOT_INTERRUPTED";
-                break;
-            }
+            writing = true;
+            repository.replace(cycle.runId, cycle.candidate);
+            return true;
+        } catch (CatalogSnapshotException failure) {
+            registerFailure(cycle, failure, writing);
+            return false;
         }
-        if (uncertain) {
-            try {
-                if (runId.equals(repository.getState().appliedRunId())) {
-                    return applied(attempts);
-                }
-                uncertain = false;
-            } catch (CatalogSnapshotException _) {
-                // No presentar un rollback ni un éxito que no se pudo verificar.
-            }
+    }
+
+    private void prepareCandidate(SnapshotCycle cycle) {
+        if (!cycle.registered) {
+            repository.beginAttempt(cycle.runId, clock.instant());
+            cycle.registered = true;
         }
-        return finish(runId, uncertain ? SynchronizationPhase.UNVERIFIABLE : SynchronizationPhase.FAILED,
-                attempts, diagnostic);
+        if (cycle.candidate == null) {
+            cycle.candidate = snapshots.fetch(access.getToken());
+            cycle.candidate.validate();
+        }
+    }
+
+    /** Una lectura fallida conserva la incertidumbre e impide volver a escribir sin verificar. */
+    private boolean reconcile(SnapshotCycle cycle) {
+        if (!cycle.uncertain) {
+            return false;
+        }
+        boolean confirmed = cycle.runId.equals(repository.getState().appliedRunId());
+        cycle.uncertain = false;
+        return confirmed;
+    }
+
+    private void registerFailure(SnapshotCycle cycle, CatalogSnapshotException failure, boolean writing) {
+        cycle.diagnostic = failure.getMessage();
+        if (writing && failure.kind() == SnapshotFailureKind.UNCERTAIN) {
+            cycle.uncertain = true;
+        }
+        cycle.retryable = failure.kind() == SnapshotFailureKind.TEMPORARY
+                || failure.kind() == SnapshotFailureKind.UNCERTAIN;
+        if (failure.kind() == SnapshotFailureKind.UNAUTHORIZED) {
+            access.invalidate();
+        }
+    }
+
+    private boolean retry(SnapshotCycle cycle) {
+        if (!cycle.retryable || cycle.attempts == MAX_ATTEMPTS) {
+            return false;
+        }
+        if (pause()) {
+            return true;
+        }
+        cycle.diagnostic = "SNAPSHOT_INTERRUPTED";
+        return false;
+    }
+
+    private SynchronizationResult finishCycle(SnapshotCycle cycle) {
+        try {
+            if (reconcile(cycle)) {
+                return applied(cycle.attempts);
+            }
+        } catch (CatalogSnapshotException _) {
+            // No presentar un rollback ni un éxito que no se pudo verificar.
+        }
+        return finish(cycle.runId,
+                cycle.uncertain ? SynchronizationPhase.UNVERIFIABLE : SynchronizationPhase.FAILED,
+                cycle.attempts, cycle.diagnostic);
     }
 
     private boolean pause() {
@@ -134,5 +162,20 @@ public class SynchronizeCatalogUseCaseImpl implements SynchronizeCatalogUseCase 
 
     private static SynchronizationResult applied(int attempts) {
         return new SynchronizationResult(SynchronizationPhase.SNAPSHOT_APPLIED, attempts, "SNAPSHOT_APPLIED");
+    }
+
+    /** Estado privado de una ejecución; no se comparte entre llamadas ni se conserva al finalizar. */
+    private static final class SnapshotCycle {
+        private final UUID runId;
+        private CatalogSnapshot candidate;
+        private boolean registered;
+        private boolean uncertain;
+        private boolean retryable = true;
+        private int attempts;
+        private String diagnostic = "SNAPSHOT_INTERRUPTED";
+
+        private SnapshotCycle(UUID runId) {
+            this.runId = runId;
+        }
     }
 }

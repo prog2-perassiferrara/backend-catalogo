@@ -11,6 +11,8 @@ import jakarta.persistence.Table;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 
+import com.prog2.catalog.synchronization.domain.model.WeeklySchedule;
+
 /** Fila de la réplica local. El ID y los tiempos proceden de cátedra, sin generación local. */
 @Entity
 @Table(name = "weekly_schedule")
@@ -46,16 +48,17 @@ public class WeeklyScheduleEntity {
 
     protected WeeklyScheduleEntity() { }
 
-    public WeeklyScheduleEntity(Long id, long professionalId, DayOfWeek dayOfWeek, LocalTime startTime, LocalTime endTime, int slotDurationMinutes, boolean enabled, Instant createdAt, Instant updatedAt) {
-        this.id = id;
-        this.professionalId = professionalId;
-        this.dayOfWeek = dayOfWeek;
-        this.startTime = startTime;
-        this.endTime = endTime;
-        this.slotDurationMinutes = slotDurationMinutes;
-        this.enabled = enabled;
-        this.createdAt = createdAt;
-        this.updatedAt = updatedAt;
+    /** Copia un horario completo, evitando intercambiar los nueve valores al construir la fila. */
+    public WeeklyScheduleEntity(WeeklySchedule schedule) {
+        this.id = schedule.id();
+        this.professionalId = schedule.professionalId();
+        this.dayOfWeek = schedule.dayOfWeek();
+        this.startTime = schedule.startTime();
+        this.endTime = schedule.endTime();
+        this.slotDurationMinutes = schedule.slotDurationMinutes();
+        this.enabled = schedule.enabled();
+        this.createdAt = schedule.createdAt();
+        this.updatedAt = schedule.updatedAt();
     }
 
     public Long getId() {

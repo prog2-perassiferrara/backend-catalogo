@@ -1,7 +1,7 @@
 # TASKS: Inicializar o reconstruir el catálogo mediante snapshot
 
 **Referencias:** [SPEC aprobada](SPEC.md), [PLAN aprobado](PLAN.md), issue #7.
-**Estado:** T-01 commiteada por el usuario. Segunda entrega implementada y verificada localmente el 2026-10-17. T-06 conserva pendiente únicamente la revisión de Actions/SonarCloud después del push del usuario.
+**Estado:** segunda entrega publicada en PR #18, con Actions/SonarCloud correctos. Ajustes de mantenibilidad posteriores autorizados y verificados localmente el 2026-10-17; nuevo análisis remoto pendiente de su publicación.
 
 ## Primera entrega: refactorización compartida
 
@@ -49,6 +49,13 @@
   - **Dependencias:** T-02 a T-05.
   - **Referencias:** RF-01 a RF-08; CA-01 a CA-09.
   - **Validación:** `./mvnw -B -ntp clean verify`, JaCoCo y revisión de caminos relevantes; Sonar CLI/IDE según acceso y `git diff --check`. Comprobar JAR/Compose con infraestructura aislada y datos ficticios, sin tocar `.env`, claves o volúmenes de desarrollo. Después del push del usuario, revisar Actions y SonarCloud, distinguiendo evidencia local/remota y sus limitaciones.
+
+- [ ] **T-07 · Simplificar el ciclo y atender avisos de mantenibilidad**
+  - **Objetivo:** facilitar la lectura sin alterar políticas, contratos ni garantías transaccionales.
+  - **Alcance:** separar pasos privados y estado por ejecución; constante de diagnóstico, regex equivalente, construcción de horario sin nueve argumentos y ajustes acotados de pruebas/Javadoc.
+  - **Dependencias:** T-02 a T-05 implementadas; autorización explícita del usuario después de revisar PR #18.
+  - **Referencias:** RF-05/RF-07/RF-08; CA-05/CA-07/CA-08/CA-09.
+  - **Validación:** suite existente y regresiones de commit ya confirmado, interrupción de reintento y nueva ejecución sin estado anterior; MySQL real, `clean verify`, Sonar disponible y `git diff --check`. Confirmación remota después del push del usuario.
 
 ## Evidencias de ejecución
 
@@ -118,3 +125,48 @@
 - **T-06 pendiente remoto:** después del commit/push del usuario, revisar Actions
   y SonarCloud de estos cambios. La evidencia local no demuestra un Quality Gate
   remoto nuevo. No se modificó Git ni se implementaron CU-02 a CU-06.
+
+### Revisión posterior al PR #18, 2026-10-17
+
+- **Evidencia remota de la segunda entrega:** Actions `39080165878`, commit
+  `07bd903`, 199 pruebas correctas; SonarCloud del PR con Gate OK, ratings nuevos A,
+  cobertura nueva 89,1 % y duplicación 0 %. Diez avisos de mantenibilidad abiertos;
+  estos resultados preceden a los ajustes siguientes.
+- **T-07 local:** ciclo separado en preparación, aplicación, clasificación de
+  fallos, reintento y reconciliación; estado privado por ejecución, sin nuevos
+  puertos ni transacciones. Constante de diagnóstico, regex equivalente y
+  constructor de entidad con el horario completo; se retiran un throws redundante
+  y una segunda llamada dentro de la aserción de excepción. El Javadoc usa «ciclo
+  completo» para evitar confundir una palabra española con una tarea TODO.
+- Tres regresiones adicionales: commit confirmado antes del siguiente intento sin
+  otra descarga/escritura; interrupción de la pausa sin segundo guardado; segunda
+  ejecución con nuevo runId y descarga. Las pruebas existentes conservan límites,
+  rollback, lectores concurrentes y reconciliación con MySQL real.
+- `./mvnw -o -B -ntp clean verify`: BUILD SUCCESS, 202 pruebas, cero fallos,
+  errores u omitidas; terminó a las 20:58:05 -03:00. JaCoCo: 714/763 líneas
+  (93,6 %) y 307/352 ramas (87,2 %). El intento enfocado anterior reutilizó clases
+  de target con errores de compilación; la ejecución limpia recompiló y pasó.
+- Sonar CLI: autenticación activa y escaneos sin secretos; Vortex sin entitlement.
+  Sonar for IDE respondió HTTP 200 para ocho Java, pero devolvió cuatro avisos
+  sobre las versiones anteriores de dos archivos (líneas/valores ya modificados).
+  Se pidió al usuario sincronizarlos conservando sus ediciones. Los diez avisos se
+  atendieron en código; su cierre y la complejidad medida requieren un análisis
+  actualizado, con confirmación Cloud después del push. Sin supresiones ni cambios
+  remotos de estado. `git diff --check` correcto.
+
+### Ajustes del reporte IDE actualizado, 2026-10-18
+
+- IDE consultado sobre los 80 Java de src: dos avisos en
+  `CatalogSnapshotClientTests`, S3358 y S899. Los ocho archivos de la revisión
+  anterior ya no informan hallazgos.
+- S3358: los seis pares HTTP/clasificación esperada se declaran con `@CsvSource`,
+  sin un ternario anidado que calcule el resultado esperado.
+- S899: el servidor ficticio usa `await()` sin resultado booleano. El `finally`
+  de la prueba libera el cuerpo; los timeouts del cliente y de JUnit limitan la
+  ejecución. Se conserva el escenario de cuerpo detenido después de cabeceras.
+- `./mvnw -o -B -ntp -Dtest=CatalogSnapshotClientTests test`: BUILD SUCCESS,
+  15 pruebas correctas, cero fallos/errores/omisiones, 11:43:55 -03:00.
+  Secretos y `git diff --check` correctos. Sin cambios de código productivo.
+- La consulta IDE posterior devolvió los mismos dos avisos sobre líneas anteriores
+  a estos ajustes; falta sincronizar este archivo y confirmar un reporte actual.
+  El análisis Cloud posterior al push sigue pendiente.

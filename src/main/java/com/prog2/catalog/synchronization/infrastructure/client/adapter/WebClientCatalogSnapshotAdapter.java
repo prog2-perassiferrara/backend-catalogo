@@ -22,6 +22,7 @@ import com.prog2.catalog.synchronization.infrastructure.client.mapper.CatalogSna
 
 /** Adapter síncrono de snapshot. HTTP, límites y JSON permanecen fuera del dominio. */
 public class WebClientCatalogSnapshotAdapter implements CatalogSnapshotGateway {
+    private static final String COMMUNICATION_FAILURE = "SNAPSHOT_COMMUNICATION_FAILURE";
     private final WebClient client;
     private final CatalogSnapshotResponseMapper snapshotMapper;
     private final JsonMapper jsonMapper;
@@ -56,16 +57,16 @@ public class WebClientCatalogSnapshotAdapter implements CatalogSnapshotGateway {
                                 .map(body -> new Payload(response.statusCode().value(), body));
                     })
                     .onErrorMap(IOException.class,
-                            _ -> failure(SnapshotFailureKind.TEMPORARY, "SNAPSHOT_COMMUNICATION_FAILURE"))
+                            _ -> failure(SnapshotFailureKind.TEMPORARY, COMMUNICATION_FAILURE))
                     .onErrorMap(ReadTimeoutException.class,
-                            _ -> failure(SnapshotFailureKind.TEMPORARY, "SNAPSHOT_COMMUNICATION_FAILURE"))
+                            _ -> failure(SnapshotFailureKind.TEMPORARY, COMMUNICATION_FAILURE))
                     .block(requestTimeout);
         } catch (CatalogSnapshotException failure) {
             throw transportFailure(receivedStatus.get(), failure.kind(), failure.getMessage());
         } catch (DataBufferLimitException _) {
             throw transportFailure(receivedStatus.get(), SnapshotFailureKind.TERMINAL, "SNAPSHOT_TOO_LARGE");
         } catch (WebClientRequestException | IllegalStateException _) {
-            throw transportFailure(receivedStatus.get(), SnapshotFailureKind.TEMPORARY, "SNAPSHOT_COMMUNICATION_FAILURE");
+            throw transportFailure(receivedStatus.get(), SnapshotFailureKind.TEMPORARY, COMMUNICATION_FAILURE);
         } catch (RuntimeException _) {
             throw transportFailure(receivedStatus.get(), SnapshotFailureKind.TERMINAL, "INVALID_CATALOG_RESPONSE");
         }

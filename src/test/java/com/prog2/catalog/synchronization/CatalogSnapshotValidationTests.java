@@ -91,7 +91,8 @@ class CatalogSnapshotValidationTests {
         var snapshot = new CatalogSnapshot(7, SnapshotFixtures.TIME, categories, List.of(), List.of());
         categories.clear();
         assertThat(snapshot.professionalCategories()).hasSize(1);
-        assertThatThrownBy(() -> snapshot.professionalCategories().clear())
+        var snapshotCategories = snapshot.professionalCategories();
+        assertThatThrownBy(snapshotCategories::clear)
                 .isInstanceOf(UnsupportedOperationException.class);
     }
 }

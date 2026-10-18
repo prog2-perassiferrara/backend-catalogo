@@ -75,7 +75,7 @@ public class CatalogSnapshotResponseMapper {
     }
 
     private static LocalTime time(String value) {
-        if (value == null || !value.matches("[0-9]{2}:[0-9]{2}(:[0-9]{2})?")) {
+        if (value == null || !value.matches("\\d{2}:\\d{2}(:\\d{2})?")) {
             throw new IllegalArgumentException("Invalid weekly time");
         }
         return LocalTime.parse(value);
