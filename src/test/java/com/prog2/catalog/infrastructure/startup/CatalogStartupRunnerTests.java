@@ -38,7 +38,7 @@ class CatalogStartupRunnerTests {
 
         var synchronization = mock(SynchronizeCatalogUseCase.class);
         try (var runner = new CatalogStartupRunner(initialize, new InvalidateTechnicalAccessUseCaseImpl(sessions),
-                synchronization, executor, Duration.ZERO)) {
+                synchronization, executor, Duration.ZERO, () -> { })) {
             runner.onApplicationReady();
             // La tarea vacía espera detrás del ciclo en el mismo executor, sin pausas arbitrarias.
             executor.submit(() -> { }).get(5, TimeUnit.SECONDS);
@@ -63,7 +63,7 @@ class CatalogStartupRunnerTests {
         when(synchronization.synchronize()).thenReturn(
                 new SynchronizationResult(SynchronizationPhase.SNAPSHOT_APPLIED, 1, "SNAPSHOT_APPLIED"));
         var executor = Executors.newSingleThreadExecutor();
-        try (var runner = new CatalogStartupRunner(initialize, invalidation, synchronization, executor, Duration.ZERO)) {
+        try (var runner = new CatalogStartupRunner(initialize, invalidation, synchronization, executor, Duration.ZERO, () -> { })) {
             runner.onApplicationReady();
             executor.submit(() -> { }).get(5, TimeUnit.SECONDS);
             runner.onApplicationReady();
@@ -83,7 +83,7 @@ class CatalogStartupRunnerTests {
         when(initialize.initialize()).thenReturn(new InitializationResult(AttemptOutcome.AVAILABLE, "READY"));
         when(synchronization.synchronize()).thenThrow(new IllegalStateException("fictional-sensitive-detail"));
         var executor = Executors.newSingleThreadExecutor();
-        try (var runner = new CatalogStartupRunner(initialize, invalidation, synchronization, executor, Duration.ZERO)) {
+        try (var runner = new CatalogStartupRunner(initialize, invalidation, synchronization, executor, Duration.ZERO, () -> { })) {
             runner.onApplicationReady();
             executor.submit(() -> { }).get(5, TimeUnit.SECONDS);
             verifyNoInteractions(invalidation);
@@ -99,7 +99,7 @@ class CatalogStartupRunnerTests {
         var synchronization = mock(SynchronizeCatalogUseCase.class);
         when(initialize.initialize()).thenReturn(new InitializationResult(AttemptOutcome.RETRYABLE, "TEMPORARY"));
         var executor = Executors.newSingleThreadExecutor();
-        try (var runner = new CatalogStartupRunner(initialize, invalidation, synchronization, executor, Duration.ZERO)) {
+        try (var runner = new CatalogStartupRunner(initialize, invalidation, synchronization, executor, Duration.ZERO, () -> { })) {
             runner.onApplicationReady();
             executor.submit(() -> { }).get(5, TimeUnit.SECONDS);
             verify(initialize, times(3)).initialize();

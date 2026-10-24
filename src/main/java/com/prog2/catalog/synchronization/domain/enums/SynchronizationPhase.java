@@ -6,6 +6,10 @@ public enum SynchronizationPhase {
     IN_PROGRESS,
     /** Copia consistente en una versión concreta, sin afirmar vigencia continua. */
     SNAPSHOT_APPLIED,
+    /** Vigencia comprobada en un instante, no una garantía indefinida. */
+    CURRENT,
+    /** Secuencia suspendida hasta el próximo ciclo de reconstrucción. */
+    RECOVERY_WAITING,
     FAILED,
     /** No fue posible verificar el resultado o registrar su diagnóstico. */
     UNVERIFIABLE,

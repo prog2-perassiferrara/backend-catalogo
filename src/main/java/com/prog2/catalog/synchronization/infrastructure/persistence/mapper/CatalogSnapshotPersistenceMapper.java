@@ -25,7 +25,8 @@ public class CatalogSnapshotPersistenceMapper {
     public CatalogState toDomain(CatalogSyncStateEntity value) {
         return new CatalogState(value.getAppliedVersion(), uuid(value.getAppliedRunId()),
                 value.getGeneratedAt(), value.getAppliedAt(), uuid(value.getLastRunId()),
-                value.getPhase(), value.getAttemptedAt(), value.getSafeDiagnostic());
+                value.getPhase(), value.getAttemptedAt(), value.getSafeDiagnostic(),
+                value.getObservedVersion(), value.getLastCheckedAt());
     }
 
     private static UUID uuid(String value) {

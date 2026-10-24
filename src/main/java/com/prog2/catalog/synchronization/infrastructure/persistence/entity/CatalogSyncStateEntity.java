@@ -29,6 +29,10 @@ public class CatalogSyncStateEntity {
     private Instant attemptedAt;
     @Column(name = "safe_diagnostic", nullable = false, length = 100)
     private String safeDiagnostic;
+    @Column(name = "observed_version")
+    private Long observedVersion;
+    @Column(name = "last_checked_at")
+    private Instant lastCheckedAt;
 
     protected CatalogSyncStateEntity() { }
 
@@ -45,7 +49,35 @@ public class CatalogSyncStateEntity {
         generatedAt = generated;
         appliedAt = now;
         finish(runId, SynchronizationPhase.SNAPSHOT_APPLIED, "SNAPSHOT_APPLIED");
+        observedVersion = null;
+        lastCheckedAt = null;
     }
+
+    /** Aplica un incremento sin reemplazar la fecha del último snapshot por publishedAt. */
+    public void updated(UUID runId, long version, Instant now) {
+        appliedVersion = version;
+        appliedRunId = runId.toString();
+        appliedAt = now;
+        attemptedAt = now;
+        finish(runId, SynchronizationPhase.CURRENT, "CATALOG_UPDATED");
+        checked(version, now);
+    }
+
+    public void checked(long version, Instant now) {
+        observedVersion = version;
+        lastCheckedAt = now;
+        phase = SynchronizationPhase.CURRENT;
+        safeDiagnostic = "CATALOG_CHECKED";
+    }
+
+    public void report(SynchronizationPhase outcome, String diagnostic, Instant now) {
+        phase = outcome;
+        safeDiagnostic = diagnostic;
+        attemptedAt = now;
+    }
+
+    public Long getObservedVersion() { return observedVersion; }
+    public Instant getLastCheckedAt() { return lastCheckedAt; }
 
     /** No altera datos/versiones aplicados al guardar el resultado del último intento. */
     public void finish(UUID runId, SynchronizationPhase outcome, String diagnostic) {

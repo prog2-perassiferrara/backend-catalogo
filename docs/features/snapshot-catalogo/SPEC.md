@@ -6,6 +6,12 @@
 
 **Aclaración confirmada durante el PLAN:** 2026-10-17, rechazar snapshots con versión menor que la ya aplicada, conservando la copia local.
 
+**Aclaración confirmada el 2026-10-19:** se conserva el comportamiento de arranque:
+si falla el snapshot, el backend queda activo; sin copia confirmada no habilita
+búsquedas. La espera hasta reinicio al agotar el ciclo corresponde al arranque de
+CU-01. [CU-03](../sincronizacion-incremental/SPEC.md) coordina nuevos ciclos de esta
+misma operación durante la ejecución, con pausas y límites propios ante fallos temporales.
+
 <!-- PARA LA PERSONA
 SPEC.md define qué debe cumplirse; PLAN.md desarrolla cómo implementarlo;
 TASKS.md organiza los pasos de ejecución. Esta funcionalidad corresponde al backend.
@@ -61,7 +67,7 @@ criterios, decisiones del plan y tareas. -->
 - **RF-04:** Sustituir la copia completa y confirmar su versión como una sola unidad: después del éxito, las tres colecciones corresponden al snapshot y la versión local es exactamente `snapshotVersion`. Los elementos de la copia anterior ausentes del nuevo snapshot dejan de pertenecer a la copia actual. No publicar mezclas, datos parciales ni una versión anticipada.
 - **RF-05:** Conservar datos y versión confirmados tras reiniciar. Una ejecución interrumpida no se considera completada; solo una copia consistente puede utilizarse, y el siguiente arranque inicia un nuevo ciclo de carga.
 - **RF-06:** Mientras se reconstruye o después de un fallo, conservar la última copia consistente, si existe. Esa copia puede servir búsquedas de KMP con aviso de posible desactualización; las operaciones de Turnos que requieren vigencia deben esperar. Sin copia consistente no se habilitan búsquedas. Registrar la situación local necesaria sin implementar todavía esas APIs.
-- **RF-07:** Reintentar de forma limitada los fallos temporales de descarga y de guardado local. Cada intento fallido conserva la copia y versión anteriores; no se vuelve a aplicar sobre un resultado parcial. Si el resultado del guardado es incierto, verificar la copia y versión confirmadas antes de repetir o declarar fallo: un timeout no demuestra que no se guardó. Detener el ciclo ante fallo no recuperable o al agotar el límite, manteniendo el backend activo si sus condiciones locales de arranque eran válidas. Tras agotarlo, la recuperación automática comienza al reiniciar, sin ciclos ilimitados en segundo plano.
+- **RF-07:** Reintentar de forma limitada los fallos temporales de descarga y de guardado local. Cada intento fallido conserva la copia y versión anteriores; no se vuelve a aplicar sobre un resultado parcial. Si el resultado del guardado es incierto, verificar la copia y versión confirmadas antes de repetir o declarar fallo: un timeout no demuestra que no se guardó. Detener el ciclo ante fallo no recuperable o al agotar el límite, manteniendo el backend activo si sus condiciones locales de arranque eran válidas. En el arranque, tras agotarlo, la recuperación automática comienza al reiniciar, sin ciclos ilimitados en segundo plano; la coordinación posterior de nuevos ciclos de recuperación corresponde a CU-03.
 - **RF-08:** Distinguir errores por HTTP y `code` cuando exista, sin depender de `detail`. Un JWT técnico vencido o rechazado con 401 invalida la sesión conforme a la política existente, sin renovación automática. Registrar resultado y diagnóstico seguro del ciclo, sin tokens, contraseñas ni cuerpos completos de respuesta.
 
 ## Fuera de alcance
@@ -119,7 +125,7 @@ sin introducir mecanismos de implementación ni escenarios exclusivos de UI. -->
 | Primera carga, sin copia | No habilitar búsquedas hasta aplicar una copia consistente. |
 | Snapshot completo con colecciones vacías | Aplicar el catálogo vacío y su versión; no confundirlo con fallo o ausencia de inicialización. |
 | Respuesta inválida, incompleta o incoherente | No aplicar nada ni cambiar la versión; detener el ciclo con diagnóstico seguro. |
-| Red interrumpida, timeout o fallo temporal remoto | Reintentar dentro del límite conservando la copia; agotado el límite, mantener el proceso activo hasta reinicio. |
+| Red interrumpida, timeout o fallo temporal remoto | Reintentar dentro del límite conservando la copia; agotado el ciclo de arranque, mantener el proceso activo hasta reinicio. Los nuevos ciclos de recuperación durante la ejecución corresponden a CU-03. |
 | Fallo temporal al guardar | Reintentar dentro del límite sin conservar efectos parciales del intento anterior. |
 | Fallo no recuperable al guardar | Conservar la copia anterior y detener el ciclo sin declarar éxito. |
 | JWT técnico vencido o HTTP 401 | Invalidar acceso técnico según la política existente y recuperar tras reinicio, sin login adicional. |
@@ -138,7 +144,7 @@ no convertir preferencias del agente en restricciones. -->
 - Respetar el enunciado, el contrato de cátedra y la política de consultas acordada en CU-01.
 - Utilizar la persistencia propia de Catálogo y conservar su propiedad exclusiva. Turnos no mantiene otra réplica vigente.
 - Mantener los secretos técnicos fuera de archivos versionados, logs y respuestas de usuario.
-- Decisiones confirmadas el 2026-10-16: snapshot en cada arranque; reintentos limitados ante fallos temporales de descarga y guardado; agotado el ciclo, recuperación automática al reiniciar.
+- Decisiones confirmadas el 2026-10-16 y aclaradas el 2026-10-19: snapshot en cada arranque; reintentos limitados ante fallos temporales de descarga y guardado; agotado el ciclo de arranque, recuperación automática al reiniciar. CU-03 establece la coordinación de nuevos ciclos durante la ejecución.
 - El PLAN concretará límites, tiempos, clasificación de fallos temporales, consistencia y concurrencia; también revisará la configuración compartida fuera de los slices. No se decide aquí el diseño de clases o persistencia.
 
 ## Criterios de aceptación
@@ -152,7 +158,7 @@ Incluye alternativas acordadas. No marcar criterios como superados en la SPEC. -
 - **CA-04 · RF-04, RF-06:** Durante un reemplazo, las consultas no observan mezclas de copias ni datos/versiones parciales; se conserva la política de copia anterior con aviso y espera de Turnos.
 - **CA-05 · RF-04, RF-05:** Después de reiniciar se conserva la última copia confirmada con su versión. Una interrupción del reemplazo no publica la carga incompleta y el arranque inicia un nuevo ciclo.
 - **CA-06 · RF-06:** Sin copia consistente no se habilita consulta; un snapshot válido con colecciones vacías se reconoce como copia aplicada, con su versión.
-- **CA-07 · RF-07:** Un fallo temporal de descarga o guardado puede recuperarse dentro del límite sin duplicados ni efectos parciales. Un resultado incierto de guardado se verifica antes de repetir o informar fallo. Al agotar el límite no se repiten intentos automáticamente y el backend sigue activo; reiniciar inicia otro ciclo. Un fallo no recuperable termina el ciclo.
+- **CA-07 · RF-07:** Un fallo temporal de descarga o guardado puede recuperarse dentro del límite sin duplicados ni efectos parciales. Un resultado incierto de guardado se verifica antes de repetir o informar fallo. Al agotar el ciclo de arranque no se repiten intentos automáticamente y el backend sigue activo; reiniciar inicia otro ciclo. Un fallo no recuperable termina el ciclo. Los nuevos ciclos coordinados por CU-03 se verifican en su especificación.
 - **CA-08 · RF-02, RF-08:** Un JWT vencido o rechazo 401 impide continuar con esa sesión y no genera renovación automática. Los errores se distinguen aunque falte `code`, sin revelar secretos ni depender de `detail`.
 - **CA-09 · RF-02, RF-03, RF-04:** Se conservan campos, referencias, habilitación y versión del snapshot, aceptando ambos formatos de hora y los instantes UTC del contrato.
 
@@ -169,7 +175,7 @@ Tests, herramientas, comandos y evidencias corresponden al PLAN. -->
 | CA-04 | Consultar mientras se reemplaza una copia consistente. | No se observa estado parcial; carga en curso y copia anterior identificables para las políticas de consulta. |
 | CA-05 | Reiniciar tras éxito e interrumpir una reconstrucción antes de completarla. | Última copia confirmada recuperable, carga incompleta no publicada y nuevo ciclo de arranque. |
 | CA-06 | Comparar falta de copia con un snapshot completo vacío. | Ausencia de inicialización diferenciada de catálogo vacío aplicado. |
-| CA-07 | Fallar descarga y guardado de forma temporal, incluir resultado incierto; recuperar antes del límite y agotar otro ciclo. | Verificación del resultado incierto, recuperación limitada y consistente, o detención sin más intentos hasta reiniciar. |
+| CA-07 | Fallar descarga y guardado de forma temporal, incluir resultado incierto; recuperar antes del límite y agotar otro ciclo de arranque. | Verificación del resultado incierto, recuperación limitada y consistente, o detención del ciclo de arranque sin más intentos hasta reiniciar. |
 | CA-08 | Vencer JWT, responder 401 y devolver otros errores sin `code`; inspeccionar solicitudes y salidas. | Sin renovación automática, diagnóstico por estado/código y sin secretos. |
 | CA-09 | Entregar horas con/sin segundos, días contractuales y fechas UTC junto con ambas habilitaciones. | Valores interpretados y conservados sin alterar su significado. |
 
