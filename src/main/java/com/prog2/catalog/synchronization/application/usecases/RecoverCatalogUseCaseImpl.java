@@ -4,7 +4,6 @@ import java.time.*;
 import java.util.Optional;
 import java.util.concurrent.locks.ReentrantLock;
 import com.prog2.catalog.synchronization.domain.enums.*;
-import com.prog2.catalog.synchronization.domain.exception.CatalogSnapshotException;
 import com.prog2.catalog.synchronization.domain.model.SynchronizationResult;
 import com.prog2.catalog.synchronization.domain.ports.in.*;
 import com.prog2.catalog.synchronization.domain.ports.out.*;

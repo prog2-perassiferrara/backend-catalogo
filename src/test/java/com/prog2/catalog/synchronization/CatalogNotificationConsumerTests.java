@@ -95,7 +95,7 @@ class CatalogNotificationConsumerTests {
     private UpdateCatalogUseCase useCase(CatalogUpdateRepository repository) {
         var recovery=mock(RecoverCatalogUseCase.class);
         when(recovery.resume()).thenReturn(Optional.empty());
-        return new UpdateCatalogUseCaseImpl(gateway,repository,snapshots,recovery,mock(TechnicalAccessGateway.class),
+        return new UpdateCatalogUseCaseImpl(gateway,repository,recovery,mock(TechnicalAccessGateway.class),
                 clock,Duration.ZERO,new ReentrantLock());
     }
     private void start(UpdateCatalogUseCase useCase) {

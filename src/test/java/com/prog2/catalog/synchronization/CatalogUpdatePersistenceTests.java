@@ -76,7 +76,10 @@ class CatalogUpdatePersistenceTests {
                 CREATE TRIGGER reject_fictional_professional BEFORE INSERT ON professional
                 FOR EACH ROW SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'fictional failure'
                 """);
-        assertThatThrownBy(() -> updates.apply(UUID.randomUUID(),batch(7,8,2),notice("rolled-back",8)))
+        UUID run = UUID.randomUUID();
+        var candidate = batch(7,8,2);
+        var event = notice("rolled-back",8);
+        assertThatThrownBy(() -> updates.apply(run,candidate,event))
                 .isInstanceOf(CatalogSnapshotException.class);
         assertThat(snapshots.getState().appliedVersion()).isEqualTo(7);
         assertThat(jdbc.queryForList("SELECT id FROM professional_category",Long.class)).containsExactly(1L);
@@ -87,10 +90,14 @@ class CatalogUpdatePersistenceTests {
         var valid=batch(7,8,2);
         var broken=new CatalogChangesBatch(7,valid.publication(),valid.categories(),
                 List.of(new Professional(102,999,"Fictional","Missing",true,SnapshotFixtures.TIME,SnapshotFixtures.TIME)),List.of());
-        assertThatThrownBy(() -> updates.apply(UUID.randomUUID(),broken,notice("bad-reference",8)))
+        UUID run = UUID.randomUUID();
+        var invalidReference = notice("bad-reference",8);
+        assertThatThrownBy(() -> updates.apply(run,broken,invalidReference))
                 .isInstanceOf(CatalogDiscontinuityException.class);
         assertThat(jdbc.queryForList("SELECT id FROM professional_category",Long.class)).containsExactly(1L);
-        assertThatThrownBy(() -> updates.apply(UUID.randomUUID(),batch(6,8,2),notice("bad-base",8)))
+        var outdated = batch(6,8,2);
+        var invalidBase = notice("bad-base",8);
+        assertThatThrownBy(() -> updates.apply(run,outdated,invalidBase))
                 .isInstanceOf(CatalogSnapshotException.class);
         assertThat(snapshots.getState().appliedVersion()).isEqualTo(7);
     }
@@ -106,7 +113,8 @@ class CatalogUpdatePersistenceTests {
         assertThat(updates.isRejected(rejected)).isTrue();
         assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM catalog_rejected_record",Integer.class)).isEqualTo(1);
         assertThat(snapshots.getState().appliedVersion()).isEqualTo(7);
-        assertThatThrownBy(() -> updates.recordCovered(notice("future",8))).isInstanceOf(CatalogSnapshotException.class);
+        var future = notice("future",8);
+        assertThatThrownBy(() -> updates.recordCovered(future)).isInstanceOf(CatalogSnapshotException.class);
         assertThat(updates.isProcessed("future")).isFalse();
     }
 
@@ -120,7 +128,7 @@ class CatalogUpdatePersistenceTests {
         when(gateway.readSince(7)).thenReturn(batch(7,10,2));
         var recovery=mock(RecoverCatalogUseCase.class);
         when(recovery.resume()).thenReturn(Optional.empty());
-        var useCase=new UpdateCatalogUseCaseImpl(gateway,uncertain,snapshots,recovery,mock(TechnicalAccessGateway.class),
+        var useCase=new UpdateCatalogUseCaseImpl(gateway,uncertain,recovery,mock(TechnicalAccessGateway.class),
                 Clock.fixed(SnapshotFixtures.TIME,ZoneOffset.UTC),Duration.ZERO,new ReentrantLock());
         var event=notice("lost-confirmation",10);
         assertThat(useCase.process(event).recorded()).isTrue();
@@ -145,7 +153,7 @@ class CatalogUpdatePersistenceTests {
             assertThat(snapshots.getState().phase()).isEqualTo(SynchronizationPhase.IN_PROGRESS);
             throw new CatalogDiscontinuityException(CatalogRecoveryReason.CHANGE_MISSING);
         });
-        var useCase = new UpdateCatalogUseCaseImpl(changes, updates, snapshots, recovery, access,
+        var useCase = new UpdateCatalogUseCaseImpl(changes, updates, recovery, access,
                 clock, Duration.ZERO, lock);
 
         assertThat(useCase.process(notice("recovered-event", 10)).recorded()).isTrue();

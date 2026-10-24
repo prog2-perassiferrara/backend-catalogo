@@ -4,6 +4,7 @@ import java.time.Clock;
 import java.time.Duration;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import tools.jackson.databind.json.JsonMapper;
@@ -46,17 +47,23 @@ public class SynchronizationConfiguration {
 
     @Bean
     UpdateCatalogUseCase updateCatalogUseCase(CatalogChangesGateway changes, CatalogUpdateRepository repository,
-            CatalogSnapshotRepository snapshots, RecoverCatalogUseCase recovery, TechnicalAccessGateway access,
+            RecoverCatalogUseCase recovery, TechnicalAccessGateway access,
             Clock clock, ReentrantLock catalogSynchronizationLock) {
-        return new UpdateCatalogUseCaseImpl(changes, repository, snapshots, recovery, access, clock,
+        return new UpdateCatalogUseCaseImpl(changes, repository, recovery, access, clock,
                 Duration.ofSeconds(5), catalogSynchronizationLock);
     }
 
     @Bean(destroyMethod = "close")
     CatalogSynchronizationMonitor catalogSynchronizationMonitor(CatalogRemoteClients clients,
-            CatalogConnectionSettingsGateway settings, CatalogSnapshotRepository snapshots, UpdateCatalogUseCase updates) {
-        return new CatalogSynchronizationMonitor(clients, settings, snapshots, updates,
-                Executors.newSingleThreadScheduledExecutor(Thread.ofPlatform().name("catalog-checks").factory()));
+            CatalogConnectionSettingsGateway settings, CatalogSnapshotRepository snapshots, UpdateCatalogUseCase updates,
+            ScheduledExecutorService catalogCheckScheduler) {
+        return new CatalogSynchronizationMonitor(clients, settings, snapshots, updates, catalogCheckScheduler);
+    }
+
+    /** Spring garantiza el cierre del recurso también si otro bean impide completar el arranque. */
+    @Bean(destroyMethod = "shutdownNow")
+    ScheduledExecutorService catalogCheckScheduler() {
+        return Executors.newSingleThreadScheduledExecutor(Thread.ofPlatform().name("catalog-checks").factory());
     }
     @Bean
     CatalogSnapshotResponseMapper catalogSnapshotResponseMapper(JsonMapper mapper) {

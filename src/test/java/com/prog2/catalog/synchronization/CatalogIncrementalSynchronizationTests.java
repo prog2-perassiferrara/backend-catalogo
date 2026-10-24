@@ -26,11 +26,11 @@ class CatalogIncrementalSynchronizationTests {
     private final ReentrantLock lock=new ReentrantLock();
     @BeforeEach void setup() {
         when(clock.instant()).thenReturn(SnapshotFixtures.TIME);
-        when(snapshots.getState()).thenReturn(state(7,null));
+        when(repository.getState()).thenReturn(state(7,null));
         when(recovery.resume()).thenReturn(Optional.empty());
     }
     private UpdateCatalogUseCaseImpl useCase() {
-        return new UpdateCatalogUseCaseImpl(changes,repository,snapshots,recovery,access,clock,Duration.ZERO,lock);
+        return new UpdateCatalogUseCaseImpl(changes,repository,recovery,access,clock,Duration.ZERO,lock);
     }
     private static CatalogState state(long version,UUID run) {
         return new CatalogState(version,run,SnapshotFixtures.TIME,SnapshotFixtures.TIME,run,
@@ -63,7 +63,7 @@ class CatalogIncrementalSynchronizationTests {
     @Test void refusesToRepeatAnUncertainWriteWhenMetadataCannotBeRead() {
         when(changes.readSince(7)).thenReturn(CatalogUpdatePersistenceTests.batch(7,10,2));
         when(repository.apply(any(),any(),any())).thenThrow(new CatalogSnapshotException(SnapshotFailureKind.UNCERTAIN,"FICTIONAL_COMMIT"));
-        when(snapshots.getState()).thenReturn(state(7,null),state(7,null))
+        when(repository.getState()).thenReturn(state(7,null),state(7,null))
                 .thenThrow(new CatalogSnapshotException(SnapshotFailureKind.TEMPORARY,"FICTIONAL_READ"));
         var result=useCase().process(CatalogUpdatePersistenceTests.notice("uncertain",10));
         assertThat(result.recorded()).isFalse();
@@ -101,7 +101,7 @@ class CatalogIncrementalSynchronizationTests {
         when(load.synchronize()).thenReturn(new SynchronizationResult(SynchronizationPhase.FAILED,3,
                 "FICTIONAL_TEMPORARY",SnapshotFailureKind.TEMPORARY));
         var actualRecovery=new RecoverCatalogUseCaseImpl(load,repository,access,clock,lock);
-        var useCase=new UpdateCatalogUseCaseImpl(changes,repository,snapshots,actualRecovery,access,clock,Duration.ZERO,lock);
+        var useCase=new UpdateCatalogUseCaseImpl(changes,repository,actualRecovery,access,clock,Duration.ZERO,lock);
         when(changes.readSince(7)).thenThrow(new CatalogDiscontinuityException(CatalogRecoveryReason.CHANGE_MISSING));
         assertThat(useCase.process(CatalogUpdatePersistenceTests.notice("missing",10)).phase()).isEqualTo(SynchronizationPhase.RECOVERY_WAITING);
         useCase.process(CatalogUpdatePersistenceTests.notice("another-message",11));
@@ -120,6 +120,7 @@ class CatalogIncrementalSynchronizationTests {
             return SnapshotFixtures.snapshot(7,1);
         });
         when(access.getToken()).thenReturn("fictional-access");
+        when(snapshots.getState()).thenReturn(state(7,null));
         var snapshot=new SynchronizeCatalogUseCaseImpl(gateway,snapshots,access,clock,Duration.ZERO,lock);
         try(var executor=Executors.newSingleThreadExecutor()) {
             var running=executor.submit(snapshot::synchronize);
@@ -130,5 +131,87 @@ class CatalogIncrementalSynchronizationTests {
             } finally { finish.countDown(); }
             assertThat(running.get(5,TimeUnit.SECONDS).phase()).isEqualTo(SynchronizationPhase.SNAPSHOT_APPLIED);
         }
+    }
+
+    @Test void retriesALocalTemporaryFailureWithTheSameValidatedCandidateAndRunId() {
+        var batch = CatalogUpdatePersistenceTests.batch(7, 10, 2);
+        when(changes.readSince(7)).thenReturn(batch);
+        when(repository.apply(any(), same(batch), any()))
+                .thenThrow(new CatalogSnapshotException(SnapshotFailureKind.TEMPORARY, "FICTIONAL_LOCAL_FAILURE"))
+                .thenReturn(state(10, UUID.randomUUID()));
+        var result = useCase().process(CatalogUpdatePersistenceTests.notice("retried-write", 10));
+        assertThat(result.recorded()).isTrue();
+        var ids = org.mockito.ArgumentCaptor.forClass(UUID.class);
+        verify(repository, times(2)).apply(ids.capture(), same(batch), any());
+        assertThat(ids.getAllValues().getFirst()).isEqualTo(ids.getAllValues().getLast());
+        verify(changes).readSince(7);
+    }
+
+    @Test void doesNotAcknowledgeANotificationUntilRedisActuallyCoversItsVersion() {
+        var partial = CatalogUpdatePersistenceTests.batch(7, 8, 2);
+        var complete = CatalogUpdatePersistenceTests.batch(7, 10, 2);
+        when(changes.readSince(7)).thenReturn(partial, complete);
+        when(repository.apply(any(), same(complete), any())).thenReturn(state(10, UUID.randomUUID()));
+        assertThat(useCase().process(CatalogUpdatePersistenceTests.notice("ahead", 10)).recorded()).isTrue();
+        verify(repository, never()).apply(any(), same(partial), any());
+        verify(changes, times(2)).readSince(7);
+    }
+
+    @Test void anUnusableTechnicalSessionStopsWorkAndInvalidatesAccess() {
+        when(access.getToken()).thenThrow(new CatalogSnapshotException(SnapshotFailureKind.UNAUTHORIZED, "FICTIONAL_EXPIRED"));
+        var result = useCase().process(CatalogUpdatePersistenceTests.notice("expired", 10));
+        assertThat(result.terminal()).isTrue();
+        assertThat(result.recorded()).isFalse();
+        verify(access).invalidate();
+        verify(repository, never()).getState();
+        verifyNoInteractions(changes);
+    }
+
+    @Test void noConfirmedCopyCannotBeUsedAsAnIncrementalBase() {
+        when(repository.getState()).thenReturn(new CatalogState(null, null, null, null, null,
+                SynchronizationPhase.NOT_STARTED, null, "NOT_STARTED"));
+        var result = useCase().process(CatalogUpdatePersistenceTests.notice("no-copy", 10));
+        assertThat(result.recorded()).isFalse();
+        assertThat(result.terminal()).isTrue();
+        verifyNoInteractions(changes, recovery);
+    }
+
+    @Test void failingToPersistTheFailureStateReturnsUnverifiableInsteadOfAnAcknowledgment() {
+        when(changes.readSince(7)).thenThrow(new CatalogSnapshotException(SnapshotFailureKind.TEMPORARY, "FICTIONAL_NETWORK"));
+        when(repository.report(eq(SynchronizationPhase.FAILED), anyString()))
+                .thenThrow(new CatalogSnapshotException(SnapshotFailureKind.TEMPORARY, "FICTIONAL_LOCAL_UNAVAILABLE"));
+        var result = useCase().process(CatalogUpdatePersistenceTests.notice("unknown-state", 10));
+        assertThat(result.recorded()).isFalse();
+        assertThat(result.phase()).isEqualTo(SynchronizationPhase.UNVERIFIABLE);
+        assertThat(result.safeDiagnostic()).isEqualTo("CATALOG_RESULT_NOT_PERSISTED");
+    }
+
+    @Test void interruptionDoesNotStartAnotherIncrementalAttempt() {
+        try {
+            Thread.currentThread().interrupt();
+            var result = useCase().check();
+            assertThat(result.phase()).isEqualTo(SynchronizationPhase.FAILED);
+            assertThat(Thread.currentThread().isInterrupted()).isTrue();
+            verifyNoInteractions(changes);
+            verify(repository, never()).apply(any(), any(), any());
+        } finally { Thread.interrupted(); }
+    }
+
+    @Test void aPreviouslyCommittedRejectionCanBeAcknowledgedWithoutWritingAgain() {
+        var rejection = new RejectedCatalogRecord("fictional-topic", 0, 3, "INCOMPATIBLE_CATALOG_NOTIFICATION");
+        when(repository.isRejected(rejection)).thenReturn(true);
+        assertThat(useCase().reject(rejection).recorded()).isTrue();
+        verify(repository, never()).recordRejection(any());
+        verifyNoInteractions(changes, recovery);
+    }
+
+    @Test void recoveryBehindTheNotificationDoesNotCreateAnEarlyReceipt() {
+        when(recovery.resume()).thenReturn(Optional.of(new SynchronizationResult(SynchronizationPhase.SNAPSHOT_APPLIED,
+                1, "SNAPSHOT_APPLIED")));
+        var result = useCase().process(CatalogUpdatePersistenceTests.notice("ahead-of-snapshot", 10));
+        assertThat(result.recorded()).isFalse();
+        assertThat(result.safeDiagnostic()).isEqualTo("NOTIFICATION_NOT_COVERED");
+        verify(repository, never()).recordCovered(any());
+        verifyNoInteractions(changes);
     }
 }

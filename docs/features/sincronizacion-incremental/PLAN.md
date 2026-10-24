@@ -41,6 +41,16 @@ de CU-01 aíslan el monitor nuevo; el seguimiento se verifica por
 separado con Redis/Kafka/MySQL y en el arranque real de JAR/Compose. No cambia
 alcance ni aceptación; evidencia y límites en TASKS (T-02/T-04/T-06/T-07).
 
+**Ajuste posterior al feedback del PR, 2026-10-24:** se explicita la publicación
+sincronizada de los clientes ya configurados y el cierre del scheduler como bean
+administrado por Spring. Las consultas internas del escritor se separan de sus
+entradas transaccionales públicas para participar en la misma unidad atómica.
+CU-02 obtiene metadata desde `CatalogUpdateRepository`, conservando lectura fresca
+y eliminando su dependencia de `CatalogSnapshotRepository`. No se agrupan
+parámetros artificialmente ni se cambian RF/CA, presupuestos o contratos externos.
+Se completan pruebas de interrupción, recuperación y cierre (CA-02/06/08/09/10,
+T-01/T-03/T-04/T-05/T-06/T-07); resultados posteriores en TASKS.
+
 ## Contexto técnico verificado
 
 <!-- Componentes existentes y participación prevista. Rutas bajo src/main/java/com/prog2/catalog/. -->
@@ -111,6 +121,7 @@ class RedisCatalogChangesAdapter {
 }
 class CatalogUpdateRepository {
   <<interface>>
+  +getState() CatalogState
   +isProcessed(eventId) boolean
   +apply(runId, batch, notification) CatalogState
   +recordCovered(notification) void
@@ -118,6 +129,7 @@ class CatalogUpdateRepository {
 }
 class JpaCatalogUpdateAdapter {
   -TransactionalCatalogUpdateWriter writer
+  +getState() CatalogState
   +isProcessed(eventId) boolean
   +apply(runId, batch, notification) CatalogState
 }

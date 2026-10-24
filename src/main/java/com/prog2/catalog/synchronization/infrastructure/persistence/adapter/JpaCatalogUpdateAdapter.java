@@ -16,6 +16,7 @@ import com.prog2.catalog.synchronization.infrastructure.persistence.service.Tran
 public class JpaCatalogUpdateAdapter implements CatalogUpdateRepository {
     private final TransactionalCatalogUpdateWriter writer;
     public JpaCatalogUpdateAdapter(TransactionalCatalogUpdateWriter writer) { this.writer = writer; }
+    @Override public CatalogState getState() { return storage(writer::getState); }
     @Override public boolean isProcessed(String id) { return storage(() -> writer.isProcessed(id)); }
     @Override public boolean isRejected(RejectedCatalogRecord value) { return storage(() -> writer.isRejected(value)); }
     @Override public CatalogState apply(UUID id, CatalogChangesBatch batch, CatalogNotification notification) {

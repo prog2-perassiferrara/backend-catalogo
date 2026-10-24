@@ -25,8 +25,8 @@ public class CatalogRemoteClients implements AutoCloseable {
     private static final Logger LOGGER = LoggerFactory.getLogger(CatalogRemoteClients.class);
     private final JsonMapper json;
     private final Clock clock;
-    private volatile StringRedisTemplate redis;
-    private volatile String namespace;
+    private StringRedisTemplate redis;
+    private String namespace;
     private LettuceConnectionFactory redisFactory;
     private KafkaMessageListenerContainer<String, String> consumer;
     private boolean stopped;
@@ -64,12 +64,13 @@ public class CatalogRemoteClients implements AutoCloseable {
         }
     }
 
-    public StringRedisTemplate redis() {
+    /** Publica el template ya configurado bajo el mismo monitor que protege su inicialización. */
+    public synchronized StringRedisTemplate redis() {
         StringRedisTemplate value = redis;
         if (value == null) { throw new CatalogSnapshotException(SnapshotFailureKind.TEMPORARY, "CATALOG_CLIENTS_NOT_READY"); }
         return value;
     }
-    public String namespace() { return namespace; }
+    public synchronized String namespace() { return namespace; }
 
     /** Detención asíncrona válida también cuando la solicita el propio hilo consumidor. */
     public synchronized void stopConsumer() {

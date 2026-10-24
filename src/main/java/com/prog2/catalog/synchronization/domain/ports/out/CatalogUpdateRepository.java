@@ -6,6 +6,8 @@ import com.prog2.catalog.synchronization.domain.model.*;
 
 /** Persistencia de unidades incrementales y reconocimientos, con commit previo al regreso. */
 public interface CatalogUpdateRepository {
+    /** Lee metadata confirmada en un contexto nuevo para decidir o reconciliar una unidad. */
+    CatalogState getState();
     /** Reconoce la identidad exacta del evento, sin truncarla ni normalizar mayúsculas. */
     boolean isProcessed(String eventId);
     boolean isRejected(RejectedCatalogRecord rejection);

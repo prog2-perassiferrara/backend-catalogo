@@ -17,7 +17,6 @@ import com.prog2.catalog.synchronization.domain.ports.out.*;
 public class UpdateCatalogUseCaseImpl implements UpdateCatalogUseCase {
     private final CatalogChangesGateway changes;
     private final CatalogUpdateRepository repository;
-    private final CatalogSnapshotRepository snapshots;
     private final RecoverCatalogUseCase recovery;
     private final TechnicalAccessGateway access;
     private final Clock clock;
@@ -27,11 +26,10 @@ public class UpdateCatalogUseCaseImpl implements UpdateCatalogUseCase {
     private CatalogUpdateResult stopped;
 
     public UpdateCatalogUseCaseImpl(CatalogChangesGateway changes, CatalogUpdateRepository repository,
-            CatalogSnapshotRepository snapshots, RecoverCatalogUseCase recovery, TechnicalAccessGateway access,
+            RecoverCatalogUseCase recovery, TechnicalAccessGateway access,
             Clock clock, Duration retryDelay, ReentrantLock lock) {
         this.changes = changes;
         this.repository = repository;
-        this.snapshots = snapshots;
         this.recovery = recovery;
         this.access = access;
         this.clock = clock;
@@ -67,7 +65,7 @@ public class UpdateCatalogUseCaseImpl implements UpdateCatalogUseCase {
             if (stopped != null) { return stopped; }
             access.getToken();
             if (notification != null && repository.isProcessed(notification.eventId())) { return recorded("CATALOG_DUPLICATE"); }
-            CatalogState state = snapshots.getState();
+            CatalogState state = repository.getState();
             if (!state.hasCopy()) {
                 return failed(new CatalogSnapshotException(SnapshotFailureKind.TERMINAL, "CATALOG_COPY_UNAVAILABLE"), Duration.ZERO);
             }
@@ -110,7 +108,7 @@ public class UpdateCatalogUseCaseImpl implements UpdateCatalogUseCase {
     /** La consulta fresca precede a cualquier repetición de una escritura incierta. */
     private CatalogUpdateResult applyAttempt(UpdateCycle cycle) {
         access.getToken();
-        CatalogState state = snapshots.getState();
+        CatalogState state = repository.getState();
         if (cycle.uncertain) {
             cycle.uncertain = false;
             if (cycle.runId.equals(state.appliedRunId())) { return confirmed(cycle.notification, state); }
@@ -151,7 +149,7 @@ public class UpdateCatalogUseCaseImpl implements UpdateCatalogUseCase {
 
     private CatalogUpdateResult afterRecovery(SynchronizationResult result, CatalogNotification notification) {
         if (result.phase() == SynchronizationPhase.SNAPSHOT_APPLIED && notification != null) {
-            return confirmed(notification, snapshots.getState());
+            return confirmed(notification, repository.getState());
         }
         if (result.failureKind() == SnapshotFailureKind.UNAUTHORIZED || result.failureKind() == SnapshotFailureKind.TERMINAL) {
             return failed(new CatalogSnapshotException(result.failureKind(), result.safeDiagnostic()), Duration.ZERO);
@@ -185,7 +183,7 @@ public class UpdateCatalogUseCaseImpl implements UpdateCatalogUseCase {
         return new CatalogUpdateResult(SynchronizationPhase.RECOVERY_WAITING, false, next, code, SnapshotFailureKind.TEMPORARY);
     }
     private CatalogUpdateResult recorded(String code) {
-        return new CatalogUpdateResult(snapshots.getState().phase(), true, null, code, null);
+        return new CatalogUpdateResult(repository.getState().phase(), true, null, code, null);
     }
 
     private static final class UpdateCycle {

@@ -37,14 +37,16 @@ class TechnicalCatalogSettingsTests {
 
     @Test
     void rejectsUnavailableConfigurationAndDiscardsExpiredSession() {
-        assertThatThrownBy(() -> access(clock).getSettings()).isInstanceOfSatisfying(CatalogSnapshotException.class,
+        var unavailable = access(clock);
+        assertThatThrownBy(unavailable::getSettings).isInstanceOfSatisfying(CatalogSnapshotException.class,
                 failure -> assertThat(failure.kind()).isEqualTo(SnapshotFailureKind.UNAUTHORIZED));
         var configuration = new IntegrationConfiguration("fictional-group", ProvisioningStatus.PROVISIONED,
                 "redis.test", 6379, "fictional-user", "fictional-redis-access", "catedra:sync:*",
                 "kafka.test:9092", "fictional-group", "catedra.catalog.fictional");
         sessions.replace(new IntegrationSession("fictional-technical-access", clock.instant().plusSeconds(60),
                 IntegrationState.READY, configuration));
-        assertThatThrownBy(() -> access(Clock.offset(clock, Duration.ofSeconds(60))).getSettings())
+        var expired = access(Clock.offset(clock, Duration.ofSeconds(60)));
+        assertThatThrownBy(expired::getSettings)
                 .isInstanceOf(CatalogSnapshotException.class);
         assertThat(sessions.get().state()).isEqualTo(IntegrationState.FAILED);
         assertThat(sessions.get().configuration()).isNull();

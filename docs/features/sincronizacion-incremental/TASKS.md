@@ -63,6 +63,48 @@ Revisar solo la parte afectada si cambia sustancialmente una decisión aprobada.
   - **Referencias:** RF-01 a RF-09; CA-01 a CA-10; PLAN, validación y regresiones.
   - **Validación:** pruebas enfocadas y `./mvnw -B -ntp clean verify` con JaCoCo; regresiones de snapshot, login técnico, JWT y arranque. Revisar con Sonar CLI/IDE según disponibilidad, escaneo de secretos y `git diff --check`, registrando limitaciones de herramientas sin presentar un análisis rechazado como correcto. Comprobar JAR/Compose con datos ficticios y recursos aislados, sin usar secretos ni volúmenes de desarrollo. Distinguir estos ensayos de una prueba real con cátedra; registrar si esta última no pudo realizarse.
 
+## Corrección posterior al feedback del PR #19
+
+**Estado:** corregido y verificado localmente, 2026-10-24. El análisis remoto
+sobre `2a3c3b9` tiene CI correcto con 232 pruebas e importación JaCoCo, pero Gate
+fallido por cobertura nueva 78,6 % y fiabilidad E. Evidencia:
+[Actions](https://github.com/prog2-perassiferrara/backend-catalogo/actions/runs/40103754770)
+y [SonarCloud PR 19](https://sonarcloud.io/dashboard?id=prog2-perassiferrara_backend-catalogo&pullRequest=19).
+Este resultado remoto describe la revisión previa, no las correcciones locales.
+
+Se atendieron los 12 hallazgos sin supresiones ni transiciones remotas:
+
+- S3077: acceso al template/namespace bajo el monitor de inicialización; template configurado antes de publicarlo, sin mutarlo después.
+- S2095: scheduler administrado por Spring con `destroyMethod=shutdownNow`; el monitor conserva la parada operativa. La regresión de contextos comprueba su cierre incluso con el monitor sustituido.
+- Tres S6809: entradas transaccionales públicas y consultas internas privadas, conservando la unidad de escritura/recibo y las lecturas frescas externas.
+- S107: CU-02 consulta su metadata mediante `CatalogUpdateRepository`; siete dependencias explícitas, sin agrupar parámetros artificialmente.
+- S1128 y cinco S5778: import sin uso eliminado y argumentos preparados antes de las aserciones de excepción.
+
+Pruebas nuevas: fallos de acceso, reintento local con el mismo lote/runId,
+notificación adelantada, interrupción y estado no verificable; clasificación de
+fallos Redis sin filtrar mensajes; rechazo de esquemas, pérdida del ack y pausas;
+copia ausente/vacía, continuidad y cierre del monitor. Ejecutan los componentes
+reales y controlan sus fronteras, sin simular transacciones como prueba de atomicidad.
+Referencias: RF-02/05/06/07/08/09, CA-02/06/08/09/10 y T-01/T-03 a T-07.
+
+**Verificación posterior:** suite enfocada de 47 pruebas correcta. Luego
+`./mvnw -B -ntp clean verify`, 2026-10-24 12:01:21 -03:00, base `2a3c3b9` más
+correcciones locales: **270 pruebas, cero fallos/errores/omisiones, BUILD SUCCESS**.
+JaCoCo sin diferencias de bytecode: **1.275/1.359 líneas (93,82 %) y 558/688 ramas
+(81,10 %)**. Estimación de cobertura nueva mediante diff con `81ae780` y JaCoCo:
+578/613 líneas y 251/336 condiciones, **87,36 %**; no es un nuevo Gate remoto.
+
+Sonar for IDE, puente 64120 HTTP 200, **122 Java sin hallazgos**; Javadoc sin
+avisos, capas/DI, escaneo de secretos y `git diff --check` correctos. CLI utilizada
+para consultar issues, Gate y métricas remotos; Vortex conserva la limitación 403
+ya registrada, sin presentarla como análisis correcto ni repetir remediaciones.
+Los ensayos JAR/Compose anteriores conservan sus fechas; no se repitieron contra
+cátedra ni se modificaron contenedores de desarrollo. No se cambian RF/CA,
+presupuestos, esquema SQL, APIs o credenciales; ajuste registrado en PLAN.
+
+Actions/SonarCloud posteriores siguen siendo feedback del usuario, sin tarea de
+espera ni cambios de estados remotos/Git por parte del agente.
+
 ## Evidencias de ejecución
 
 - **T-01:** `TechnicalCatalogSettingsTests`, `TechnicalSnapshotAccessTests` y regresiones de CU-01 prueban sesión utilizable, vencimiento/401, resultados tipados y representación sin secretos. La prueba concurrente de `CatalogIncrementalSynchronizationTests` comparte el bloqueo con CU-01 real.

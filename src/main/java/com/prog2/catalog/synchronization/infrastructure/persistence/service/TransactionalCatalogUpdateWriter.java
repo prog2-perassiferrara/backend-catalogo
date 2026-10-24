@@ -43,7 +43,17 @@ public class TransactionalCatalogUpdateWriter {
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW, readOnly = true, timeout = 20)
+    public CatalogState getState() {
+        return mapper.toDomain(states.findById(1L).orElseThrow());
+    }
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW, readOnly = true, timeout = 20)
     public boolean isProcessed(String eventId) {
+        return hasProcessedEvent(eventId);
+    }
+
+    /** Las consultas internas participan en la transacción de la operación que las contiene. */
+    private boolean hasProcessedEvent(String eventId) {
         return events.findById(digest(eventId)).map(receipt -> {
             if (!receipt.getEventId().equals(eventId)) {
                 throw new CatalogSnapshotException(SnapshotFailureKind.TERMINAL, "EVENT_ID_DIGEST_CONFLICT");
@@ -54,6 +64,10 @@ public class TransactionalCatalogUpdateWriter {
 
     @Transactional(propagation = Propagation.REQUIRES_NEW, readOnly = true, timeout = 20)
     public boolean isRejected(RejectedCatalogRecord rejection) {
+        return hasRejectedRecord(rejection);
+    }
+
+    private boolean hasRejectedRecord(RejectedCatalogRecord rejection) {
         return rejections.existsById(key(rejection));
     }
 
@@ -61,7 +75,7 @@ public class TransactionalCatalogUpdateWriter {
     public CatalogState apply(UUID runId, CatalogChangesBatch batch, CatalogNotification notification) {
         CatalogSyncStateEntity state = locked();
         if (runId.toString().equals(state.getAppliedRunId())) { return mapper.toDomain(state); }
-        if (notification != null && isProcessed(notification.eventId())) { return mapper.toDomain(state); }
+        if (notification != null && hasProcessedEvent(notification.eventId())) { return mapper.toDomain(state); }
         requireBase(state, batch.baseVersion());
         batch.validate();
         categories.saveAllAndFlush(batch.categories().stream().map(mapper::toEntity).toList());
@@ -84,7 +98,7 @@ public class TransactionalCatalogUpdateWriter {
     }
 
     public void recordRejection(RejectedCatalogRecord rejection) {
-        if (!isRejected(rejection)) {
+        if (!hasRejectedRecord(rejection)) {
             rejections.saveAndFlush(new CatalogRejectedRecordEntity(key(rejection), rejection.safeCode(), clock.instant()));
         }
     }
@@ -106,7 +120,7 @@ public class TransactionalCatalogUpdateWriter {
         if (state.getAppliedVersion() == null || state.getAppliedVersion() < notification.newVersion()) {
             throw new CatalogSnapshotException(SnapshotFailureKind.TEMPORARY, "NOTIFICATION_NOT_COVERED");
         }
-        if (!isProcessed(notification.eventId())) {
+        if (!hasProcessedEvent(notification.eventId())) {
             events.saveAndFlush(new CatalogProcessedEventEntity(digest(notification.eventId()),
                     notification.eventId(), notification.newVersion(), clock.instant()));
         }

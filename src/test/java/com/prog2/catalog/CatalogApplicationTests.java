@@ -159,7 +159,9 @@ class CatalogApplicationTests {
             settings.put("server.port", "0");
             for (int restart = 0; restart < 2; restart++) {
                 UUID oldRunId = previous;
+                java.util.concurrent.ScheduledExecutorService scheduler;
                 try (var context = application(WebApplicationType.SERVLET).run(arguments(settings))) {
+                    scheduler = context.getBean("catalogCheckScheduler", java.util.concurrent.ScheduledExecutorService.class);
                     var repository = context.getBean(CatalogSnapshotRepository.class);
                     org.awaitility.Awaitility.await().atMost(Duration.ofSeconds(5)).untilAsserted(() -> {
                         var state = repository.getState();
@@ -168,6 +170,7 @@ class CatalogApplicationTests {
                     });
                     previous = repository.getState().appliedRunId();
                 }
+                assertThat(scheduler.isShutdown()).isTrue();
             }
             assertThat(central.requests()).extracting(TechnicalIntegrationTestServer.Request::path)
                     .containsExactly("/api/authenticate", "/api/synchronization/snapshot",
