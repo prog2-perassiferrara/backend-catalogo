@@ -22,15 +22,16 @@ public class SynchronizeCatalogUseCaseImpl implements SynchronizeCatalogUseCase 
     private final TechnicalAccessGateway access;
     private final Clock clock;
     private final Duration retryDelay;
-    private final ReentrantLock cycleLock = new ReentrantLock();
+    private final ReentrantLock cycleLock;
 
     public SynchronizeCatalogUseCaseImpl(CatalogSnapshotGateway snapshots, CatalogSnapshotRepository repository,
-            TechnicalAccessGateway access, Clock clock, Duration retryDelay) {
+            TechnicalAccessGateway access, Clock clock, Duration retryDelay, ReentrantLock cycleLock) {
         this.snapshots = snapshots;
         this.repository = repository;
         this.access = access;
         this.clock = clock;
         this.retryDelay = retryDelay;
+        this.cycleLock = cycleLock;
     }
 
     @Override
@@ -103,6 +104,7 @@ public class SynchronizeCatalogUseCaseImpl implements SynchronizeCatalogUseCase 
 
     private void registerFailure(SnapshotCycle cycle, CatalogSnapshotException failure, boolean writing) {
         cycle.diagnostic = failure.getMessage();
+        cycle.failureKind = failure.kind();
         if (writing && failure.kind() == SnapshotFailureKind.UNCERTAIN) {
             cycle.uncertain = true;
         }
@@ -134,7 +136,7 @@ public class SynchronizeCatalogUseCaseImpl implements SynchronizeCatalogUseCase 
         }
         return finish(cycle.runId,
                 cycle.uncertain ? SynchronizationPhase.UNVERIFIABLE : SynchronizationPhase.FAILED,
-                cycle.attempts, cycle.diagnostic);
+                cycle.attempts, cycle.diagnostic, cycle.failureKind);
     }
 
     private boolean pause() {
@@ -147,7 +149,8 @@ public class SynchronizeCatalogUseCaseImpl implements SynchronizeCatalogUseCase 
         }
     }
 
-    private SynchronizationResult finish(UUID runId, SynchronizationPhase phase, int attempts, String diagnostic) {
+    private SynchronizationResult finish(UUID runId, SynchronizationPhase phase, int attempts, String diagnostic,
+            SnapshotFailureKind failureKind) {
         try {
             CatalogState state = repository.finishAttempt(runId, phase, diagnostic);
             if (runId.equals(state.appliedRunId())) {
@@ -155,9 +158,9 @@ public class SynchronizeCatalogUseCaseImpl implements SynchronizeCatalogUseCase 
             }
         } catch (CatalogSnapshotException _) {
             return new SynchronizationResult(SynchronizationPhase.UNVERIFIABLE, attempts,
-                    "SNAPSHOT_RESULT_NOT_PERSISTED");
+                    "SNAPSHOT_RESULT_NOT_PERSISTED", SnapshotFailureKind.UNCERTAIN);
         }
-        return new SynchronizationResult(phase, attempts, diagnostic);
+        return new SynchronizationResult(phase, attempts, diagnostic, failureKind);
     }
 
     private static SynchronizationResult applied(int attempts) {
@@ -173,6 +176,7 @@ public class SynchronizeCatalogUseCaseImpl implements SynchronizeCatalogUseCase 
         private boolean retryable = true;
         private int attempts;
         private String diagnostic = "SNAPSHOT_INTERRUPTED";
+        private SnapshotFailureKind failureKind = SnapshotFailureKind.TEMPORARY;
 
         private SnapshotCycle(UUID runId) {
             this.runId = runId;

@@ -5,12 +5,8 @@ import java.time.Instant;
 import java.time.LocalTime;
 import java.util.Objects;
 
-import tools.jackson.databind.DeserializationFeature;
-import tools.jackson.databind.MapperFeature;
-import tools.jackson.databind.cfg.CoercionAction;
-import tools.jackson.databind.cfg.CoercionInputShape;
 import tools.jackson.databind.json.JsonMapper;
-import tools.jackson.databind.type.LogicalType;
+import com.prog2.catalog.infrastructure.config.CatalogJsonMapperFactory;
 
 import com.prog2.catalog.synchronization.domain.enums.SnapshotFailureKind;
 import com.prog2.catalog.synchronization.domain.exception.CatalogSnapshotException;
@@ -22,15 +18,7 @@ public class CatalogSnapshotResponseMapper {
     private final JsonMapper mapper;
 
     public CatalogSnapshotResponseMapper(JsonMapper mapper) {
-        this.mapper = mapper.rebuild()
-                .disable(MapperFeature.ALLOW_COERCION_OF_SCALARS)
-                .disable(DeserializationFeature.ACCEPT_FLOAT_AS_INT,
-                        DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
-                .withCoercionConfig(LogicalType.Textual, config -> config
-                        .setCoercion(CoercionInputShape.Integer, CoercionAction.Fail)
-                        .setCoercion(CoercionInputShape.Float, CoercionAction.Fail)
-                        .setCoercion(CoercionInputShape.Boolean, CoercionAction.Fail))
-                .build();
+        this.mapper = CatalogJsonMapperFactory.strict(mapper);
     }
 
     /**
@@ -57,18 +45,18 @@ public class CatalogSnapshotResponseMapper {
         }
     }
 
-    private ProfessionalCategory category(ProfessionalCategoryResponse value) {
+    public ProfessionalCategory category(ProfessionalCategoryResponse value) {
         return new ProfessionalCategory(value.id(), Objects.requireNonNull(value.name()),
                 value.description(), value.enabled(), Instant.parse(value.createdAt()), Instant.parse(value.updatedAt()));
     }
 
-    private Professional professional(ProfessionalResponse value) {
+    public Professional professional(ProfessionalResponse value) {
         return new Professional(value.id(), value.categoryId(), Objects.requireNonNull(value.firstName()),
                 Objects.requireNonNull(value.lastName()), value.enabled(),
                 Instant.parse(value.createdAt()), Instant.parse(value.updatedAt()));
     }
 
-    private WeeklySchedule schedule(WeeklyScheduleResponse value) {
+    public WeeklySchedule schedule(WeeklyScheduleResponse value) {
         return new WeeklySchedule(value.id(), value.professionalId(), DayOfWeek.valueOf(value.dayOfWeek()),
                 time(value.startTime()), time(value.endTime()), value.slotDurationMinutes(), value.enabled(),
                 Instant.parse(value.createdAt()), Instant.parse(value.updatedAt()));

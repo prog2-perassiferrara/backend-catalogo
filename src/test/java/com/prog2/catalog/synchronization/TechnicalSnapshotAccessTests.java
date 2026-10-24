@@ -56,13 +56,18 @@ class TechnicalSnapshotAccessTests {
             var sessions = readySession();
             var tokens = new GetTechnicalTokenUseCaseImpl(sessions, clock);
             var access = new IntegrationTechnicalAccessAdapter(tokens,
-                    new InvalidateTechnicalAccessUseCaseImpl(sessions));
+                    new InvalidateTechnicalAccessUseCaseImpl(sessions),
+                    new GetIntegrationConfigurationUseCaseImpl(sessions, clock));
             var json = JsonMapper.builder().build();
             var gateway = new WebClientCatalogSnapshotAdapter(server.baseUrl(), json,
                     new CatalogSnapshotResponseMapper(json), Duration.ofSeconds(1), Duration.ofSeconds(1),
                     Duration.ofSeconds(2), 8192);
-            var cycle = new SynchronizeCatalogUseCaseImpl(gateway, repository(), access, clock, Duration.ZERO);
-            assertThat(cycle.synchronize().phase()).isEqualTo(SynchronizationPhase.FAILED);
+            var cycle = new SynchronizeCatalogUseCaseImpl(gateway, repository(), access, clock, Duration.ZERO, new java.util.concurrent.locks.ReentrantLock());
+            var result = cycle.synchronize();
+            assertThat(result.phase()).isEqualTo(SynchronizationPhase.FAILED);
+            assertThat(result.failureKind()).isEqualTo(status == 401
+                    ? com.prog2.catalog.synchronization.domain.enums.SnapshotFailureKind.UNAUTHORIZED
+                    : com.prog2.catalog.synchronization.domain.enums.SnapshotFailureKind.TEMPORARY);
             assertThat(server.requests()).hasSize(requests).allSatisfy(request ->
                     assertThat(request.path()).isEqualTo("/api/synchronization/snapshot"));
             if (status == 401) {
@@ -79,9 +84,10 @@ class TechnicalSnapshotAccessTests {
         var sessions = readySession();
         Clock expiredClock = Clock.offset(clock, Duration.ofSeconds(60));
         var access = new IntegrationTechnicalAccessAdapter(new GetTechnicalTokenUseCaseImpl(sessions, expiredClock),
-                new InvalidateTechnicalAccessUseCaseImpl(sessions));
+                new InvalidateTechnicalAccessUseCaseImpl(sessions),
+                new GetIntegrationConfigurationUseCaseImpl(sessions, expiredClock));
         var gateway = mock(CatalogSnapshotGateway.class);
-        var cycle = new SynchronizeCatalogUseCaseImpl(gateway, repository(), access, expiredClock, Duration.ZERO);
+        var cycle = new SynchronizeCatalogUseCaseImpl(gateway, repository(), access, expiredClock, Duration.ZERO, new java.util.concurrent.locks.ReentrantLock());
         assertThat(cycle.synchronize().attempts()).isEqualTo(1);
         assertThat(sessions.get().state()).isEqualTo(IntegrationState.FAILED);
         verifyNoInteractions(gateway);

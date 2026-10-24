@@ -47,6 +47,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ExtendWith(OutputCaptureExtension.class)
 @TestConstructor(autowireMode = TestConstructor.AutowireMode.ALL)
+@org.springframework.test.context.bean.override.mockito.MockitoBean(
+        types = com.prog2.catalog.infrastructure.startup.CatalogSynchronizationMonitor.class)
 class CatalogApplicationTests {
 
     private static final String TEST_PASSWORD = "fictional-test-password";
@@ -70,7 +72,9 @@ class CatalogApplicationTests {
     static final MySQLContainer MYSQL = new MySQLContainer("mysql:8.4.8")
             .withDatabaseName("catalog_test")
             .withUsername("catalog_test")
-            .withPassword(TEST_PASSWORD);
+            .withPassword(TEST_PASSWORD)
+            // Base descartable: evita que un fsync lento del host agote el timeout JDBC de arranque.
+            .withTmpFs(Map.of("/var/lib/mysql", "rw"));
 
     @DynamicPropertySource
     static void databaseSettings(DynamicPropertyRegistry registry) {
@@ -107,7 +111,8 @@ class CatalogApplicationTests {
                 .ignoreExceptionsInstanceOf(com.prog2.catalog.integration.application.exception.IntegrationUnavailableException.class)
                 .untilAsserted(() ->
                 assertThat(technicalTokens.getToken()).isEqualTo(TechnicalIntegrationTestServer.TOKEN));
-        org.awaitility.Awaitility.await().atMost(Duration.ofSeconds(5)).untilAsserted(() ->
+        // El primer snapshot también carga clientes/mappers; 5 s no es su plazo contractual.
+        org.awaitility.Awaitility.await().atMost(Duration.ofSeconds(20)).untilAsserted(() ->
                 assertThat(jdbc.queryForObject("SELECT applied_version FROM catalog_sync_state WHERE id = 1",
                         Long.class)).isEqualTo(7L));
         assertThat(CENTRAL.requests()).hasSize(2);
@@ -154,7 +159,9 @@ class CatalogApplicationTests {
             settings.put("server.port", "0");
             for (int restart = 0; restart < 2; restart++) {
                 UUID oldRunId = previous;
+                java.util.concurrent.ScheduledExecutorService scheduler;
                 try (var context = application(WebApplicationType.SERVLET).run(arguments(settings))) {
+                    scheduler = context.getBean("catalogCheckScheduler", java.util.concurrent.ScheduledExecutorService.class);
                     var repository = context.getBean(CatalogSnapshotRepository.class);
                     org.awaitility.Awaitility.await().atMost(Duration.ofSeconds(5)).untilAsserted(() -> {
                         var state = repository.getState();
@@ -163,6 +170,7 @@ class CatalogApplicationTests {
                     });
                     previous = repository.getState().appliedRunId();
                 }
+                assertThat(scheduler.isShutdown()).isTrue();
             }
             assertThat(central.requests()).extracting(TechnicalIntegrationTestServer.Request::path)
                     .containsExactly("/api/authenticate", "/api/synchronization/snapshot",
@@ -350,6 +358,10 @@ class CatalogApplicationTests {
         environment.getPropertySources().remove(StandardEnvironment.SYSTEM_ENVIRONMENT_PROPERTY_SOURCE_NAME);
         environment.getPropertySources().remove(StandardEnvironment.SYSTEM_PROPERTIES_PROPERTY_SOURCE_NAME);
         application.setEnvironment(environment);
+        // Estas regresiones verifican CU-01 con REST ficticio. Kafka/Redis se prueban por separado.
+        application.addInitializers(context -> context.addBeanFactoryPostProcessor(factory ->
+                factory.registerSingleton("catalogSynchronizationMonitor", org.mockito.Mockito.mock(
+                        com.prog2.catalog.infrastructure.startup.CatalogSynchronizationMonitor.class))));
         return application;
     }
 

@@ -30,6 +30,7 @@ public class CatalogStartupRunner implements AutoCloseable {
     private final SynchronizeCatalogUseCase synchronization;
     private final ExecutorService executor;
     private final Duration retryDelay;
+    private final Runnable monitoring;
     private Future<?> task;
 
     /**
@@ -38,15 +39,17 @@ public class CatalogStartupRunner implements AutoCloseable {
      * @param synchronization carga completa, ejecutada solo después del acceso técnico disponible
      * @param executor ejecutor dedicado, cuyo cierre queda a cargo de este coordinador
      * @param retryDelay pausa entre intentos recuperables, aplicada solo si queda otro intento
+     * @param monitoring activa el seguimiento después del ciclo inicial; comprueba copia y acceso
      */
     public CatalogStartupRunner(InitializeIntegrationUseCase initializeUseCase,
             InvalidateTechnicalAccessUseCase invalidation, SynchronizeCatalogUseCase synchronization,
-            ExecutorService executor, Duration retryDelay) {
+            ExecutorService executor, Duration retryDelay, Runnable monitoring) {
         this.initializeUseCase = initializeUseCase;
         this.invalidation = invalidation;
         this.synchronization = synchronization;
         this.executor = executor;
         this.retryDelay = retryDelay;
+        this.monitoring = monitoring;
     }
 
     /**
@@ -71,6 +74,7 @@ public class CatalogStartupRunner implements AutoCloseable {
             // Un fallo local de snapshot no revoca por sí mismo un acceso técnico utilizable.
             LOGGER.error("Catalog snapshot failed; recovery requires restart");
         }
+        if (!Thread.currentThread().isInterrupted()) { monitoring.run(); }
     }
 
     private boolean initializeTechnicalAccess() {

@@ -14,7 +14,7 @@
 
 ## Precondiciones
 
-- Existe una copia local con una versión aplicada registrada. Si la copia está vacía, corresponde CU-01.
+- Existe una copia local con una versión aplicada registrada, aunque sus colecciones estén vacías. Si no hay una copia aplicada, corresponde CU-01.
 - La integración técnica está configurada para acceder a las notificaciones y los datos de sincronización.
 
 ## Flujo principal

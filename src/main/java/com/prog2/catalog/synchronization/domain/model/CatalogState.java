@@ -10,7 +10,15 @@ import com.prog2.catalog.synchronization.domain.enums.SynchronizationPhase;
  */
 public record CatalogState(Long appliedVersion, UUID appliedRunId, Instant generatedAt,
         Instant appliedAt, UUID lastRunId, SynchronizationPhase phase, Instant attemptedAt,
-        String safeDiagnostic) {
+        String safeDiagnostic, Long observedVersion, Instant lastCheckedAt) {
+
+    /** Metadata anterior al seguimiento, con comprobación remota todavía desconocida. */
+    public CatalogState(Long appliedVersion, UUID appliedRunId, Instant generatedAt,
+            Instant appliedAt, UUID lastRunId, SynchronizationPhase phase, Instant attemptedAt,
+            String safeDiagnostic) {
+        this(appliedVersion, appliedRunId, generatedAt, appliedAt, lastRunId, phase, attemptedAt,
+                safeDiagnostic, null, null);
+    }
 
     /** @return si existe una copia completa confirmada, aunque esté vacía o atrasada */
     public boolean hasCopy() {
