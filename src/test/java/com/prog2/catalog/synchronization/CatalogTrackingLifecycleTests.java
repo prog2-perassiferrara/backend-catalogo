@@ -11,7 +11,6 @@ import com.prog2.catalog.synchronization.domain.exception.CatalogSnapshotExcepti
 import com.prog2.catalog.synchronization.domain.model.*;
 import com.prog2.catalog.synchronization.domain.ports.in.UpdateCatalogUseCase;
 import com.prog2.catalog.synchronization.domain.ports.out.*;
-import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 

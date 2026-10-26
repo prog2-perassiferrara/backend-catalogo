@@ -105,6 +105,15 @@ presupuestos, esquema SQL, APIs o credenciales; ajuste registrado en PLAN.
 Actions/SonarCloud posteriores siguen siendo feedback del usuario, sin tarea de
 espera ni cambios de estados remotos/Git por parte del agente.
 
+**Confirmación remota posterior, 2026-10-24:** revisión `3e80c5c`,
+[Actions correcto](https://github.com/prog2-perassiferrara/backend-catalogo/actions/runs/40106169310)
+y SonarCloud Gate **OK**: cobertura nueva **87,4 %**, fiabilidad/seguridad/
+mantenibilidad **A**, duplicación nueva **0 %**. Único hallazgo restante S1128:
+import estático de AssertJ sin uso en `CatalogTrackingLifecycleTests`; eliminado
+localmente. Cambio sin comportamiento, verificado mediante diff, sin repetir la
+suite completa. El resultado remoto corresponde al commit anterior a esa limpieza.
+Kafka central conserva la limitación operativa documentada.
+
 ## Evidencias de ejecución
 
 - **T-01:** `TechnicalCatalogSettingsTests`, `TechnicalSnapshotAccessTests` y regresiones de CU-01 prueban sesión utilizable, vencimiento/401, resultados tipados y representación sin secretos. La prueba concurrente de `CatalogIncrementalSynchronizationTests` comparte el bloqueo con CU-01 real.
