@@ -12,7 +12,8 @@ MySQL 8.4.8, JPA/Hibernate y Flyway. Incluye health y pruebas de integración.
 Incluye autenticación técnica ante cátedra y configuración de integración en memoria.
 Valida JWT RS256 de Turnos y entrega el token técnico mediante un endpoint protegido.
 La emisión de JWT y el registro/login de usuarios corresponden a Turnos.
-Descarga y aplica un snapshot completo de catálogo en cada arranque; los incrementos siguen pendientes.
+Descarga un snapshot en cada arranque y mantiene la copia local mediante Kafka,
+Redis y comprobaciones periódicas; recupera discontinuidades con otro snapshot.
 
 ## Requisitos
 
@@ -73,8 +74,8 @@ lo rechaza con 401, se invalida el acceso sin renovar automáticamente. No se
 comprueba la firma al leer `exp`; cátedra valida el token en sus APIs.
 
 El JWT se comparte con Turnos mediante el endpoint protegido descrito abajo.
-Redis y Kafka se implementarán en sus propias funcionalidades; adquirir
-configuración no demuestra que esas conexiones estén disponibles.
+La configuración adquirida se usa para los clientes Redis y Kafka. Obtenerla no
+demuestra que esas conexiones estén disponibles; los fallos se diagnostican aparte.
 
 ## Carga completa del catálogo
 
@@ -97,14 +98,50 @@ nula significa ausencia de copia, distinta de un snapshot vacío aplicado.
 
 Los logs muestran `Catalog snapshot: SNAPSHOT_APPLIED` o un diagnóstico seguro.
 Ese estado confirma consistencia en una versión, no vigencia continua frente a
-cambios centrales posteriores. Las APIs de búsqueda, agendas y estado, así como
-Kafka/Redis, corresponden a los próximos casos de uso. Durante carga o fallo se
+cambios centrales posteriores. Las APIs de búsqueda, agendas y estado siguen
+pendientes. Durante carga o fallo se
 conserva la copia anterior; su futura API deberá advertir a KMP y hacer esperar
 a Turnos cuando la operación requiera vigencia. Sin acceso a MySQL, conservar
 los datos no garantiza poder consultarlos.
 
 Los instantes se almacenan en UTC con precisión de microsegundos de MySQL.
 Los horarios usan `LocalTime` y JDBC directo, sin convertirlos según la zona del equipo.
+
+## Incrementos y recuperación
+
+Con copia confirmada y acceso técnico utilizable, se crean los clientes con los
+hosts, credenciales, topic y consumer group adquiridos. No se necesitan nuevas
+variables de entorno ni desplegar Redis/Kafka centrales en el Compose propio.
+
+Kafka notifica `CatalogUpdated`; Redis aporta versiones, IDs afectados y entidades.
+Si la copia está en 7 y Redis en 10, se verifican los cambios 8, 9 y 10 y se guarda
+un lote 7 → 10. Las entidades son actuales, por lo que no se publican versiones
+intermedias con datos que ya pertenecen a 10. Se vuelve a leer metadata antes de
+aceptar el lote, bajo el supuesto de publicación central coherente.
+
+Datos, versión, identificador de aplicación y recibo de evento se confirman en
+una transacción. El offset Kafka se confirma después. Una reentrega consulta el
+recibo persistido; un mensaje incompatible deja un rechazo por topic/partición/
+offset antes de avanzar, sin presentarlo como una actualización aplicada.
+
+Además se comprueba Redis inmediatamente y cada 30 s desde el fin de la ejecución
+anterior. Esto permite detectar notificaciones perdidas. Un bloqueo compartido
+impide superponer snapshot, incrementos y recuperación; la red y las pausas no
+mantienen una transacción MySQL abierta.
+
+Los incrementos admiten tres intentos con pausas de 5 s y una nueva oportunidad
+no antes de 30 s al agotarlos. Una discontinuidad activa CU-03 y reutiliza el ciclo
+de snapshot: hasta tres ciclos por bloque, separados 30 s; después espera 5 min
+y habilita otro bloque. Mensajes adicionales no eliminan esas esperas. El fallo
+permanente o el acceso técnico inutilizable detienen la repetición hasta reiniciar.
+Un corte temporal de Redis no provoca reconstrucciones continuas.
+
+`V3__catalog_updates.sql` añade recibos/rechazos y las columnas `observed_version`
+y `last_checked_at`. `CURRENT` significa versión comprobada en ese instante,
+no una promesa de vigencia permanente. `FAILED`, `UNVERIFIABLE` y
+`RECOVERY_WAITING` conservan la copia anterior; las futuras APIs aplicarán la
+política de aviso a KMP y espera de Turnos. Health sigue midiendo proceso/MySQL,
+sin certificar Redis, Kafka ni vigencia del catálogo.
 
 ## Seguridad JWT y entrega a Turnos
 
@@ -264,7 +301,7 @@ o no puede conectar a la base. El diagnóstico identifica el problema sin mostra
 ```
 
 Compila, ejecuta las pruebas y empaqueta el JAR en `target/`. Las pruebas usan
-Testcontainers y un MySQL 8.4.8 temporal: Docker debe estar accesible. No requieren
+Testcontainers con MySQL 8.4.8, Redis 8.4.0 y Kafka 4.2.1 temporales: Docker debe estar accesible. No requieren
 `.env` ni reutilizan la base de desarrollo. Se comprueba migración Flyway, datos
 persistidos, health sin detalles y rechazo de arranque con configuración inválida
 o base inaccesible. La integración utiliza un servidor HTTP ficticio: comprueba
@@ -273,6 +310,9 @@ y vencimiento del JWT, sin conectarse a cátedra real.
 La carga completa añade pruebas de contrato, rollback, lectura concurrente en
 `REPEATABLE_READ`, pérdida de conexión, confirmación incierta y reinicios reales
 de contextos sobre la misma base. No se simula una transacción con Mockito.
+Los incrementos comprueban continuidad Redis, rollback del lote, recibos durables,
+offsets posteriores al commit, reentrega tras reiniciar el consumidor, comprobación
+sin Kafka y límites de recuperación con reloj controlado.
 Los resultados quedan en `target/surefire-reports/`.
 Las pruebas de seguridad generan pares RSA efímeros y tokens ficticios; ejecutan
 el decoder y los filtros reales, verificando firma, claims, tiempos, separación
@@ -365,3 +405,6 @@ Seguridad JWT: [SPEC](docs/features/seguridad-jwt/SPEC.md),
 
 Snapshot: [SPEC](docs/features/snapshot-catalogo/SPEC.md),
 [PLAN](docs/features/snapshot-catalogo/PLAN.md) y [TASKS](docs/features/snapshot-catalogo/TASKS.md).
+
+Incrementos y recuperación: [SPEC](docs/features/sincronizacion-incremental/SPEC.md),
+[PLAN](docs/features/sincronizacion-incremental/PLAN.md) y [TASKS](docs/features/sincronizacion-incremental/TASKS.md).

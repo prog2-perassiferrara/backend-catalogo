@@ -268,7 +268,7 @@ class IntegrationBehaviorTests {
     private CatalogStartupRunner runner(ExecutorService executor, Duration delay) {
         return new CatalogStartupRunner(initialize, new InvalidateTechnicalAccessUseCaseImpl(sessions),
                 () -> new SynchronizationResult(SynchronizationPhase.SNAPSHOT_APPLIED, 1, "SNAPSHOT_APPLIED"),
-                executor, delay);
+                executor, delay, () -> { });
     }
 
     @Test

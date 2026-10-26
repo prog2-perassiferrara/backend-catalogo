@@ -10,6 +10,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
 
 import com.prog2.catalog.infrastructure.startup.CatalogStartupRunner;
+import com.prog2.catalog.infrastructure.startup.CatalogSynchronizationMonitor;
 import com.prog2.catalog.integration.domain.ports.in.InitializeIntegrationUseCase;
 import com.prog2.catalog.integration.domain.ports.in.InvalidateTechnicalAccessUseCase;
 import com.prog2.catalog.synchronization.domain.ports.in.SynchronizeCatalogUseCase;
@@ -42,9 +43,10 @@ public class CatalogConfiguration {
 
     @Bean(destroyMethod = "close")
     CatalogStartupRunner catalogStartupRunner(InitializeIntegrationUseCase initialize,
-            InvalidateTechnicalAccessUseCase invalidation, SynchronizeCatalogUseCase synchronization) {
+            InvalidateTechnicalAccessUseCase invalidation, SynchronizeCatalogUseCase synchronization,
+            CatalogSynchronizationMonitor monitoring) {
         return new CatalogStartupRunner(initialize, invalidation, synchronization,
                 Executors.newSingleThreadExecutor(Thread.ofPlatform().name("catalog-integration").factory()),
-                Duration.ofSeconds(5));
+                Duration.ofSeconds(5), monitoring::start);
     }
 }
