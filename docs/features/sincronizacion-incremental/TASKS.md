@@ -13,6 +13,13 @@ Revisar solo la parte afectada si cambia sustancialmente una decisión aprobada.
 
 ## Tareas
 
+- [x] **T-08 · Corregir recuperación ante un fallo de conexión durante commit**
+  - **Objetivo:** conservar recuperación automática y reconciliación cuando JPA envuelve un fallo JDBC de comunicación.
+  - **Alcance:** reproducir la clasificación con Spring/Hibernate, reconocer conexión JDBC y transacción de resultado incierto (incluido rollback sin SQLState) en ambos adaptadores mediante un mapper compartido y validar commits fallidos antes/después de confirmar en MySQL aislado. Conservar errores permanentes, diagnósticos seguros y presupuestos existentes.
+  - **Dependencias:** T-03/T-04/T-06 existentes. Autorización de corrección recibida el 2026-10-27; las consultas de agenda/estado quedan pendientes.
+  - **Referencias:** RF-06/RF-08/RF-09; CA-03/CA-08/CA-09/CA-10; nota de corrección en PLAN.
+  - **Validación:** reproducción roja y regresión de conexión/commit/rollback con MySQL real, conservación de copia/versión/recibos y reanudación sin reiniciar. Regresión completa y revisión local correctas; resultados en la sección de corrección del 2026-10-27.
+
 - [x] **T-01 · Preparar la colaboración interna y la coordinación compartida**
   - **Objetivo:** obtener la configuración adquirida y reutilizar CU-01 desde CU-03 sin acoplar repositorios ni permitir escrituras concurrentes.
   - **Alcance:** puerto público de consulta en `integration`, su implementación y adaptación dentro de `synchronization`; configuración compartida fuera de slices. Inyectar el mismo `ReentrantLock` en las operaciones coordinadas y conservar en `SynchronizationResult` la clasificación tipada de los fallos de snapshot. Mantener políticas de login, vencimiento y 401, sin endpoint nuevo ni exposición de credenciales.
@@ -114,6 +121,23 @@ localmente. Cambio sin comportamiento, verificado mediante diff, sin repetir la
 suite completa. El resultado remoto corresponde al commit anterior a esa limpieza.
 Kafka central conserva la limitación operativa documentada.
 
+## Corrección de recuperación, 2026-10-27
+
+Se reprodujeron timeouts del driver MySQL en la frontera de commit, antes y después
+de confirmar, y durante una escritura cuyo rollback falla por conexión cerrada.
+JPA puede entregar en este último caso `JpaSystemException -> TransactionException
+-> SQLException` sin SQLState, ocultando el fallo de comunicación original.
+El mapper compartido conserva incertidumbre para esos fallos y no convierte los
+errores SQL permanentes o errores no transaccionales desconocidos en temporales.
+Los diagnósticos adicionales muestran exclusivamente tipos de excepción.
+
+- **Reproducción y alcance:** los casos de recuperación fallaban antes de corregir la clasificación. La primera suite completa encontró además el fallo de rollback en una prueba existente; se reprodujo con un trigger controlado antes de cerrar la corrección, sin debilitar esa prueba.
+- **Validación enfocada final:** `CatalogStorageFailureTests`, `CatalogCommitRecoveryTests` y `CatalogUpdatePersistenceTests`, 27 pruebas correctas. El monitor permanece activo, respeta la espera de 30 s y puede volver a `CURRENT`; un commit confirmado no vuelve a escribir el lote, uno revertido sí puede reintentarlo, y el recibo no se reconoce antes de confirmar.
+- **Regresión completa:** `./mvnw -B -ntp clean verify`, 2026-10-27 14:35:32 -03:00, base `0ec5f30` más cambios locales: **291 pruebas, cero fallos/errores/omisiones, BUILD SUCCESS**. JaCoCo: 94,24 % líneas y 81,56 % ramas, sin avisos de bytecode desalineado. Javadoc de los tres Java productivos correcto, sin avisos.
+- **Calidad local:** Sonar for IDE, HTTP 200 sobre los seis Java, sin hallazgos; CLI autenticada y escaneo de secretos correcto. Vortex no disponible para esta conexión, sin presentarlo como un análisis Java limpio. No hay un análisis remoto nuevo confirmado.
+- **Ensayo operativo:** reconstruido solo `catalog` con Compose; MySQL conserva su mismo contenedor y volumen. Health `UP`, acceso técnico `READY`, snapshot aplicado, dos comprobaciones Redis `CURRENT` y partición Kafka asignada. Versión aplicada/observada 1, comprobación a las 17:37:21 UTC y cero eventos procesados. La recuperación del fallo se verificó en entorno aislado; este ensayo confirma arranque y seguimiento con el arreglo, no la recepción de un evento central nuevo.
+- **Límites:** sin cambios de esquema, JWT, dependencias, timeouts productivos ni presupuestos de reintentos. Los límites de 250 ms y `SLEEP(1)` pertenecen exclusivamente al fixture de prueba, ausente del JAR productivo. No se implementaron las consultas de agenda/estado ni se gestionó Git.
+
 ## Evidencias de ejecución
 
 - **T-01:** `TechnicalCatalogSettingsTests`, `TechnicalSnapshotAccessTests` y regresiones de CU-01 prueban sesión utilizable, vencimiento/401, resultados tipados y representación sin secretos. La prueba concurrente de `CatalogIncrementalSynchronizationTests` comparte el bloqueo con CU-01 real.
@@ -122,7 +146,7 @@ Kafka central conserva la limitación operativa documentada.
 - **T-04:** `RecoverCatalogUseCaseTests` verifica tres ciclos, fronteras de 30 s/5 min, nuevos bloques y parada permanente. `CatalogIncrementalSynchronizationTests` comprueba duplicados, presupuestos, incertidumbre y exclusión. La prueba de discontinuidad de `CatalogUpdatePersistenceTests` ejecuta CU-03 → CU-01 reales y confirma la nueva base antes de reconocer el evento.
 - **T-05:** `CatalogNotificationConsumerTests` ejecuta Kafka/Redis/MySQL reales: offset retenido hasta el commit, reentrega tras cerrar/recrear consumidor, rechazo durable seguido de evento válido y fallo temporal del guardado del rechazo que impide saltar el offset anterior.
 - **T-06:** la comprobación programada ejecuta CU-02 y Redis/MySQL sin Kafka operativo y continúa después de fallo al iniciar clientes. Las regresiones de arranque conservan las políticas existentes; aíslan el monitor nuevo para no mezclar objetivos de CU-01. Ensayo completo del 2026-10-23 correcto: JAR con snapshot 7 y comprobación inicial hasta 10; evento hasta 11; Compose sobre la misma DB aplica snapshot 11 y conserva recibos, luego confirma 12. Corte real de Redis conserva copia y registra fallo; restaurarlo permite volver a CURRENT sin reiniciar. Corte de Kafka no impide detectar 13 por Redis; tras restaurarlo, el evento 14 queda reconocido. Health y datos comprobados; recursos propios cerrados, sin tocar volúmenes de desarrollo.
-- **T-07:** Sonar for IDE, puente local 64121, HTTP 200 sobre 119 Java sin hallazgos después de las correcciones. Sonar CLI 1.10.0 autenticada en la organización; análisis Java no disponible por Vortex 403, sin tratarlo como resultado limpio ni modificar estados remotos. Javadoc `-Xdoclint:all,-missing` correcto y sin avisos, sin exigir documentación redundante de miembros obvios. Dominio puro, dependencias de aplicación e inyección por constructor revisados; sin `@Data`/`@Autowired`. Secretos y `git diff --check` correctos. Suite final, cobertura y ensayo empaquetado correctos, ver cierre. Guía de lectura y explicación del recorrido/patrones entregadas en el chat de esta implementación.
+- **T-07:** Sonar for IDE, puente local 64121, HTTP 200 sobre 119 Java sin hallazgos después de las correcciones. Sonar CLI 1.10.0 autenticada en la organización; análisis Java no disponible por Vortex 403, sin tratarlo como resultado limpio ni modificar estados remotos. Javadoc `-Xdoclint:all,-missing` correcto y sin avisos, sin exigir documentación redundante de miembros obvios. Dominio puro, dependencias de aplicación e inyección por constructor revisados; sin `@Data`/`@Autowired`. Secretos y `git diff --check` correctos. Suite final, cobertura y ensayo empaquetado correctos, ver cierre.
 
 ### Ensayo operativo aportado por el usuario, 2026-10-24
 
@@ -154,7 +178,7 @@ cátedra ni se convierte el supuesto del productor en una garantía.
 | CA-05 | Verificado, aislado | T-02/T-04: ventana/cambio/entidad ausentes, publicación cambiante y recuperación real por snapshot. |
 | CA-06 | Verificado, aislado | T-04: límites 3 ciclos/30 s/5 min con reloj controlado, mensajes durante pausa, siguiente bloque, fallo permanente y nueva base 12. |
 | CA-07 | Verificado, aislado | T-01/T-02/T-04: cambio de publicación detectado y exclusión compartida con CU-01 real, sin aceptar lote mezclado. |
-| CA-08 | Verificado, aislado | T-03/T-04/T-05/T-06: límites de reintentos, rollback/reconciliación de commit real incierto, guardado de rechazo recuperado y cortes/restauración Redis/Kafka sin reiniciar. |
+| CA-08 | Verificado, aislado | T-03/T-04/T-05/T-06 y T-08: límites de reintentos, rollback/reconciliación de commit real incierto, recuperación de conexión/rollback sin detener el monitor, guardado de rechazo recuperado y cortes/restauración Redis/Kafka sin reiniciar. |
 | CA-09 | Verificado, aislado | Regresiones CU-01 y T-03/T-05/T-06: sin copia/vacío versionado, contextos/consumidor recreados, datos y recibos conservados. |
 | CA-10 | Verificado, aislado | T-01/T-04/T-06/T-07: estado en curso/comprobado/espera/fallo, acceso vencido/401, representación de secretos, logs ficticios y escaneo. |
 

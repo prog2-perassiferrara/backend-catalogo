@@ -53,6 +53,17 @@ T-01/T-03/T-04/T-05/T-06/T-07); resultados posteriores en TASKS.
 
 ## Contexto técnico verificado
 
+**Corrección posterior, 2026-10-27:** autorizada por el usuario antes de continuar
+las consultas de catálogo. Un timeout real al confirmar metadata se clasificó
+como terminal y detuvo el seguimiento. Se ajustará la traducción compartida de
+los adaptadores JPA de snapshot e incrementos para reconocer SQLState de conexión
+`08`, tipos JDBC de conexión o un fallo transaccional Hibernate con SQLException
+sin SQLState tras fallar el rollback, conservando resultado incierto. Validar el fallo
+de commit antes/después de confirmar y el rollback con conexión cerrada en MySQL real,
+reconciliación y reanudación posterior sin reiniciar; mantener terminales los
+errores SQL permanentes. Afecta RF-06/RF-08/RF-09 y CA-03/CA-08/CA-09/CA-10,
+sin nuevos requisitos, dependencias, timeouts ni cambios de políticas.
+
 <!-- Componentes existentes y participación prevista. Rutas bajo src/main/java/com/prog2/catalog/. -->
 
 | Componente o archivo existente | Ruta verificada | Responsabilidad y uso previsto |
