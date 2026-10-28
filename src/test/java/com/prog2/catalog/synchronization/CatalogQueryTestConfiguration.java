@@ -21,8 +21,10 @@ import com.prog2.catalog.synchronization.infrastructure.persistence.mapper.Catal
 import com.prog2.catalog.synchronization.infrastructure.persistence.repository.JpaCatalogSyncStateRepository;
 import com.prog2.catalog.synchronization.infrastructure.persistence.service.*;
 import com.prog2.catalog.synchronization.infrastructure.web.controller.CatalogQueryController;
+import com.prog2.catalog.synchronization.infrastructure.web.controller.CatalogSearchController;
 import com.prog2.catalog.synchronization.infrastructure.web.exception.CatalogQueryExceptionHandler;
 import com.prog2.catalog.synchronization.infrastructure.web.mapper.CatalogQueryDtoMapper;
+import com.prog2.catalog.synchronization.infrastructure.web.mapper.CatalogSearchDtoMapper;
 import com.prog2.catalog.security.JwtTestTokens;
 
 /** Contexto real de consultas, SQL, seguridad y sesión en memoria, sin runners ni clientes centrales. */
@@ -38,11 +40,20 @@ import com.prog2.catalog.security.JwtTestTokens;
         GetIntegrationConfigurationUseCaseImpl.class, InvalidateTechnicalAccessUseCaseImpl.class,
         IntegrationTechnicalAccessAdapter.class, IntegrationTokenController.class,
         SecurityConfiguration.class, CatalogQueryController.class, CatalogQueryDtoMapper.class,
+        CatalogSearchController.class, CatalogSearchDtoMapper.class,
         CatalogQueryExceptionHandler.class, CatalogQueryTestData.class})
 public class CatalogQueryTestConfiguration {
     @Bean QueryClock clock() { return new QueryClock(); }
     @Bean CatalogSynchronizationGuard guard() { return new CatalogSynchronizationGuard(); }
     @Bean CatalogStatusPolicy policy(Clock clock) { return new CatalogStatusPolicy(clock); }
+    @Bean SearchProfessionalsUseCase search(CatalogQueryRepository repository, TechnicalAccessGateway access,
+            CatalogSynchronizationGuard guard, CatalogStatusPolicy policy) {
+        return new SearchProfessionalsUseCaseImpl(repository, access, guard, policy);
+    }
+    @Bean GetProfessionalCategoriesUseCase categories(CatalogQueryRepository repository, TechnicalAccessGateway access,
+            CatalogSynchronizationGuard guard, CatalogStatusPolicy policy) {
+        return new GetProfessionalCategoriesUseCaseImpl(repository, access, guard, policy);
+    }
     @Bean GetProfessionalAgendaUseCase agendas(CatalogQueryRepository repository, TechnicalAccessGateway access,
             CatalogSynchronizationGuard guard, CatalogStatusPolicy policy) {
         return new GetProfessionalAgendaUseCaseImpl(repository, access, guard, policy);

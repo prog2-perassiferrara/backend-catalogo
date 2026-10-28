@@ -65,6 +65,7 @@ class CatalogQueryTestData {
     /** Fotografía de efectos observables, también detecta cambios inadvertidos de metadata o recibos. */
     List<List<Map<String, Object>>> persisted() {
         return List.of(jdbc.queryForList("SELECT * FROM catalog_sync_state"),
+                jdbc.queryForList("SELECT * FROM professional_category ORDER BY id"),
                 jdbc.queryForList("SELECT * FROM professional ORDER BY id"),
                 jdbc.queryForList("SELECT * FROM weekly_schedule ORDER BY id"),
                 jdbc.queryForList("SELECT * FROM catalog_processed_event"),

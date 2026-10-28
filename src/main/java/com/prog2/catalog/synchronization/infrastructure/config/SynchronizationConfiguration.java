@@ -15,6 +15,10 @@ import com.prog2.catalog.synchronization.application.usecases.RecoverCatalogUseC
 import com.prog2.catalog.synchronization.application.usecases.UpdateCatalogUseCaseImpl;
 import com.prog2.catalog.synchronization.application.usecases.GetProfessionalAgendaUseCaseImpl;
 import com.prog2.catalog.synchronization.application.usecases.GetCatalogStatusUseCaseImpl;
+import com.prog2.catalog.synchronization.application.usecases.SearchProfessionalsUseCaseImpl;
+import com.prog2.catalog.synchronization.application.usecases.GetProfessionalCategoriesUseCaseImpl;
+import com.prog2.catalog.synchronization.domain.ports.in.SearchProfessionalsUseCase;
+import com.prog2.catalog.synchronization.domain.ports.in.GetProfessionalCategoriesUseCase;
 import com.prog2.catalog.synchronization.application.service.CatalogStatusPolicy;
 import com.prog2.catalog.synchronization.domain.ports.in.GetProfessionalAgendaUseCase;
 import com.prog2.catalog.synchronization.domain.ports.in.GetCatalogStatusUseCase;
@@ -89,6 +93,18 @@ public class SynchronizationConfiguration {
 
     @Bean
     CatalogStatusPolicy catalogStatusPolicy(Clock clock) { return new CatalogStatusPolicy(clock); }
+
+    @Bean
+    SearchProfessionalsUseCase searchProfessionalsUseCase(CatalogQueryRepository repository,
+            TechnicalAccessGateway access, CatalogSynchronizationGuard guard, CatalogStatusPolicy policy) {
+        return new SearchProfessionalsUseCaseImpl(repository, access, guard, policy);
+    }
+
+    @Bean
+    GetProfessionalCategoriesUseCase getProfessionalCategoriesUseCase(CatalogQueryRepository repository,
+            TechnicalAccessGateway access, CatalogSynchronizationGuard guard, CatalogStatusPolicy policy) {
+        return new GetProfessionalCategoriesUseCaseImpl(repository, access, guard, policy);
+    }
 
     @Bean
     GetProfessionalAgendaUseCase getProfessionalAgendaUseCase(CatalogQueryRepository repository,

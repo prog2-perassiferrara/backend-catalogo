@@ -99,8 +99,8 @@ nula significa ausencia de copia, distinta de un snapshot vacío aplicado.
 
 Los logs muestran `Catalog snapshot: SNAPSHOT_APPLIED` o un diagnóstico seguro.
 Ese estado confirma consistencia en una versión, no vigencia continua frente a
-cambios centrales posteriores. La API de búsqueda sigue pendiente. Durante carga o fallo se
-conserva la copia anterior; las consultas de estado permiten advertir a KMP y
+cambios centrales posteriores. Durante carga o fallo se conserva la copia anterior;
+las búsquedas y consultas de estado permiten advertir a KMP y
 las de agenda hacen esperar a Turnos cuando la operación requiere vigencia. Sin acceso a MySQL, conservar
 los datos no garantiza poder consultarlos.
 
@@ -295,6 +295,69 @@ Errores en `application/problem+json`, con `type`, `title`, `status`, `code` e
 | 401 `AUTHENTICATION_REQUIRED` / 403 `ACCESS_DENIED` | JWT no admitido o identidad sin permiso; se resuelve antes de consultar datos. |
 
 Contrato y fundamentos: [PLAN](docs/features/consulta-agenda-estado/PLAN.md).
+
+## Buscar profesionales y consultar categorías
+
+KMP consulta directamente estos GET con JWT de usuario (`token_use=user`,
+`ROLE_USER`). El JWT de servicio de Turnos no permite utilizar estas rutas.
+Las respuestas llevan `Cache-Control: no-store` y se resuelven sobre la réplica
+local, sin solicitudes a cátedra por búsqueda.
+
+| GET | Resultado 200 |
+| --- | --- |
+| `/api/catalog/professionals` | `content`, `page`, `size`, `totalElements`, `totalPages`, `catalog`. |
+| `/api/catalog/categories` | `content` con todas las categorías ordenadas por nombre/ID y `catalog`. |
+
+Parámetros opcionales y combinables de profesionales:
+
+| Parámetro | Significado y límites |
+| --- | --- |
+| `categoryId` | ID positivo de categoría; uno inexistente produce cero coincidencias. |
+| `name` | Fragmento de nombre completo (nombre y apellido), sin distinguir mayúsculas o tildes. Se recortan extremos; vacío omite el filtro y máximo 100 caracteres. `%`, `_` y `!` se buscan literalmente. |
+| `enabled` | Habilitación del profesional; omitido incluye habilitados y deshabilitados. |
+| `availableOn` | Fecha ISO `yyyy-MM-dd`; exige un horario habilitado para su día de semana. No garantiza huecos libres ni consulta ocupaciones. |
+| `page` | Página desde 0, por defecto 0; el desplazamiento debe caber en un entero JPA. |
+| `size` | Tamaño de página, por defecto 20 y entre 1 y 100. Un exceso se rechaza con 400. |
+
+Orden fijo: apellido, nombre e ID ascendente. Sin filtros se incluyen todos los
+profesionales, paginados. El estado de categoría se conserva independientemente
+del del profesional; no se ocultan categorías deshabilitadas.
+
+Ejemplo ficticio de búsqueda con una coincidencia:
+
+```json
+{
+  "content": [
+    {"id": 15, "firstName": "Ana", "lastName": "Gómez", "enabled": true,
+     "category": {"id": 1, "name": "Clínica", "enabled": true}}
+  ],
+  "page": 0,
+  "size": 20,
+  "totalElements": 1,
+  "totalPages": 1,
+  "catalog": {"state": "CURRENT", "copyAvailable": true}
+}
+```
+
+Categorías devuelve los mismos campos `id`, `name`, `enabled` dentro de `content`,
+sin paginación. Ambas consultas incluyen el resumen de estado de CU-06. Con copia
+anterior legible devuelven 200 y estado no vigente, también durante sincronización,
+recuperación, fallo o reinicio sin nueva comprobación. KMP debe mostrar la posible
+desactualización. Este resultado no sustituye la consulta vigente que Turnos requiere.
+
+Una copia vacía confirmada o una búsqueda sin coincidencias devuelve `content=[]`;
+con total cero, `totalPages=0`. Una página posterior al final conserva los totales
+reales. Cada respuesta mantiene datos, categorías y total de una copia consistente;
+las páginas sucesivas pueden cambiar si el catálogo cambia entre solicitudes.
+
+Errores seguros en `application/problem+json`:
+
+- 400 `INVALID_SEARCH_CRITERIA`: filtro, fecha, tipo, tamaño o desplazamiento inválido.
+- 503 `CATALOG_COPY_UNAVAILABLE`: todavía no existe una versión aplicada confirmada.
+- 503 `CATALOG_UNAVAILABLE`: no puede completarse la lectura local.
+- 401 `AUTHENTICATION_REQUIRED` / 403 `ACCESS_DENIED`: identidad no admitida o sin permiso.
+
+Contrato y fundamentos: [PLAN](docs/features/busqueda-profesionales/PLAN.md).
 
 ## Ejecutar todo con Compose
 
