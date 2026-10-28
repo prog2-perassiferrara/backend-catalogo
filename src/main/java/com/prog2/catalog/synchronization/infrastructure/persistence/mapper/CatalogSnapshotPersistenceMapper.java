@@ -8,6 +8,12 @@ import com.prog2.catalog.synchronization.infrastructure.persistence.entity.*;
 /** Mapeo manual entre valores de dominio y filas. No convierte horarios locales a instantes. */
 @Component
 public class CatalogSnapshotPersistenceMapper {
+    /** Materializa la categoría sin perder su habilitación o los valores originales. */
+    public ProfessionalCategory toDomain(ProfessionalCategoryEntity value) {
+        return new ProfessionalCategory(value.getId(), value.getName(), value.getDescription(), value.getEnabled(),
+                value.getCreatedAt(), value.getUpdatedAt());
+    }
+
     public ProfessionalCategoryEntity toEntity(ProfessionalCategory value) {
         return new ProfessionalCategoryEntity(value.id(), value.name(), value.description(), value.enabled(),
                 value.createdAt(), value.updatedAt());

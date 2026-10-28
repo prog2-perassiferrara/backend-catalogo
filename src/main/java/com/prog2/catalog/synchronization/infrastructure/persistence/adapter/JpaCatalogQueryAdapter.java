@@ -18,6 +18,12 @@ public class JpaCatalogQueryAdapter implements CatalogQueryRepository {
     public JpaCatalogQueryAdapter(TransactionalCatalogQueryReader reader) { this.reader = reader; }
 
     @Override
+    public CatalogSearchView search(ProfessionalSearchCriteria criteria) { return read(() -> reader.search(criteria)); }
+
+    @Override
+    public CatalogCategoriesView readCategories() { return read(reader::readCategories); }
+
+    @Override
     public CatalogReadView readProfessional(long professionalId) {
         return read(() -> reader.readProfessional(professionalId));
     }
