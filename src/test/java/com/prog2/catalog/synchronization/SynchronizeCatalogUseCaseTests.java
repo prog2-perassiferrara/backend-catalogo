@@ -40,7 +40,7 @@ class SynchronizeCatalogUseCaseTests {
     }
 
     private SynchronizeCatalogUseCaseImpl cycle() {
-        return new SynchronizeCatalogUseCaseImpl(gateway, repository, access, clock, Duration.ZERO, new java.util.concurrent.locks.ReentrantLock());
+        return new SynchronizeCatalogUseCaseImpl(gateway, repository, access, clock, Duration.ZERO, new com.prog2.catalog.synchronization.application.service.CatalogSynchronizationGuard());
     }
 
     private static CatalogState state(UUID runId, SynchronizationPhase phase) {
@@ -257,7 +257,7 @@ class SynchronizeCatalogUseCaseTests {
             Thread.currentThread().interrupt();
             throw failure(SnapshotFailureKind.TEMPORARY);
         });
-        var useCase = new SynchronizeCatalogUseCaseImpl(gateway, repository, access, clock, Duration.ofSeconds(5), new java.util.concurrent.locks.ReentrantLock());
+        var useCase = new SynchronizeCatalogUseCaseImpl(gateway, repository, access, clock, Duration.ofSeconds(5), new com.prog2.catalog.synchronization.application.service.CatalogSynchronizationGuard());
         try {
             SynchronizationResult result = useCase.synchronize();
             assertThat(result.phase()).isEqualTo(SynchronizationPhase.FAILED);

@@ -1,7 +1,7 @@
 package com.prog2.catalog.synchronization;
 
 import java.time.*;
-import java.util.concurrent.locks.ReentrantLock;
+import com.prog2.catalog.synchronization.application.service.CatalogSynchronizationGuard;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
@@ -21,7 +21,7 @@ class RecoverCatalogUseCaseTests {
 
     private RecoverCatalogUseCaseImpl recovery() {
         when(clock.instant()).thenReturn(SnapshotFixtures.TIME);
-        return new RecoverCatalogUseCaseImpl(snapshots, repository, access, clock, new ReentrantLock());
+        return new RecoverCatalogUseCaseImpl(snapshots, repository, access, clock, new CatalogSynchronizationGuard());
     }
 
     @Test

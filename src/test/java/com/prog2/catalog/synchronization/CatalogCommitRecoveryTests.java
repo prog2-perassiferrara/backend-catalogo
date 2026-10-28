@@ -3,7 +3,7 @@ package com.prog2.catalog.synchronization;
 import java.time.*;
 import java.util.*;
 import java.util.concurrent.*;
-import java.util.concurrent.locks.ReentrantLock;
+import com.prog2.catalog.synchronization.application.service.CatalogSynchronizationGuard;
 
 import com.zaxxer.hikari.HikariDataSource;
 import org.junit.jupiter.api.*;
@@ -135,7 +135,7 @@ class CatalogCommitRecoveryTests {
         var gateway = mock(CatalogSnapshotGateway.class);
         when(gateway.fetch(any())).thenReturn(SnapshotFixtures.snapshot(10, 2));
         var useCase = new SynchronizeCatalogUseCaseImpl(gateway, snapshots, mock(TechnicalAccessGateway.class),
-                Clock.fixed(SnapshotFixtures.TIME, ZoneOffset.UTC), Duration.ZERO, new ReentrantLock());
+                Clock.fixed(SnapshotFixtures.TIME, ZoneOffset.UTC), Duration.ZERO, new CatalogSynchronizationGuard());
         faults.arm("insert into professional ", moment);
 
         assertThat(useCase.synchronize().phase()).isEqualTo(SynchronizationPhase.SNAPSHOT_APPLIED);
@@ -150,7 +150,7 @@ class CatalogCommitRecoveryTests {
         var recovery = mock(RecoverCatalogUseCase.class);
         when(recovery.resume()).thenReturn(Optional.empty());
         return new UpdateCatalogUseCaseImpl(changes, updates, recovery, mock(TechnicalAccessGateway.class),
-                clock, Duration.ZERO, new ReentrantLock());
+                clock, Duration.ZERO, new CatalogSynchronizationGuard());
     }
 
     @Test

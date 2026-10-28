@@ -63,7 +63,7 @@ class SynchronizeCatalogUseCase {
   +synchronize() SynchronizationResult
 }
 class SynchronizeCatalogUseCaseImpl {
-  -ReentrantLock cycleLock
+  -CatalogSynchronizationGuard cycleLock
   +synchronize() SynchronizationResult
 }
 class CatalogSnapshotGateway {
@@ -236,7 +236,7 @@ Rutas bajo `src/main/java/com/prog2/catalog/`, salvo indicación contraria:
 
 - **Estado:** distinguir ausencia de copia, ejecución en curso, snapshot aplicado, fallo y resultado no verificable. `SNAPSHOT_APPLIED` significa consistencia en esa versión, no `CURRENT`. La metadata describe la última aplicación confirmada y el último intento; el caso conserva el estado de su ejecución actual en memoria para no informar éxito si no pudo guardar un diagnóstico. CU-06 definirá su exposición, sin confundir un intento histórico interrumpido con una tarea activa después de reiniciar.
 - **Arranque y ejecución:** `CatalogStartupRunner` sustituye al runner técnico porque ahora coordina dos casos de uso, fuera de ambos slices. Conserva `ApplicationReadyEvent`, un solo executor y el ciclo técnico actual. El caso de snapshot controla su propio ciclo de hasta tres intentos; ambos presupuestos son independientes. No usar dos listeners concurrentes esperando que el login termine primero, polling ni eventos de negocio nuevos. Error de snapshot no revierte un login READY; excepción del arranque técnico sí conserva su tratamiento anterior.
-- **Concurrencia:** `ReentrantLock.tryLock()` protege el ciclo completo de snapshot; otra invocación devuelve ocupado sin duplicar descarga ni reemplazo. El bloqueo de metadata coordina la escritura DB y evita publicar una versión menor. El despliegue actual tiene una instancia; no se añade elección de líder para múltiples réplicas. Las futuras escrituras incrementales deben respetar esta misma exclusión de escritura, a concretar en CU-02/03.
+- **Concurrencia:** `CatalogSynchronizationGuard.trySynchronize()` protege el ciclo completo de snapshot; otra invocación devuelve ocupado sin duplicar descarga ni reemplazo. El bloqueo de metadata coordina la escritura DB y evita publicar una versión menor. El despliegue actual tiene una instancia; no se añade elección de líder para múltiples réplicas. CU-02/03 respetan la misma exclusión de escritura.
 - **Reintentos:** tres intentos totales por ciclo de snapshot, incluidos descarga/guardado; no tres por cada fase ni reintentos ocultos del cliente. Pausa fija de 5 s solo si queda otro intento. Cachear únicamente el candidato validado durante ese ciclo. Cada reintento de DB utiliza una transacción nueva, sin reutilizar una transacción marcada rollback-only. Descartar candidato al terminar el ciclo.
 - **Organización interna del ciclo:** separar preparación del candidato, aplicación, clasificación del fallo, pausa y reconciliación en métodos privados. `SnapshotCycle` agrupa exclusivamente el estado de una llamada y se descarta al finalizar; no es un bean, un puerto ni una sesión compartida. El bucle conserva un único presupuesto y las mismas transacciones. El mapper de persistencia construye `WeeklyScheduleEntity` con el horario completo, evitando nueve argumentos posicionales; la dependencia permanece desde infraestructura hacia dominio.
 - **Resultado incierto:** reutilizar un único `runId` para el candidato. Si el commit pudo completarse antes del error de conexión, leer metadata en una transacción nueva: `applied_run_id == runId` significa aplicado y evita otra escritura; si no coincide, bloquear la fila al reintentar y volver a comprobar antes de sustituir. Si no se puede verificar, conservar estado no verificable y reintentar solo dentro del límite, comenzando por esa comprobación. El registro final devuelve la metadata bajo el mismo bloqueo y conserva un éxito confirmado mientras esperaba, evitando sobrescribirlo con un fallo. No informar rollback demostrado ni catálogo vigente sin evidencia.
@@ -316,3 +316,13 @@ Comprueba requisitos, exclusiones, dependencias y criterios. Si cambia la SPEC,
 revisa su impacto. Tras aprobar el PLAN deriva TASKS con IDs, dependencias,
 referencias y comprobaciones; implementar requiere autorización explícita.
 -->
+
+## Ajuste técnico del 2026-10-27
+
+El PLAN aprobado de [consultas de agenda/estado](../consulta-agenda-estado/PLAN.md)
+sustituye el bloqueo suelto por `CatalogSynchronizationGuard`, con acceso exclusivo
+reentrante para CU-01/02/03 y compartido para lecturas. Un snapshot invalida la
+verificación de esta ejecución; solo una comprobación o incremento confirmado
+vuelve a habilitarla. Se conservan los presupuestos, transacciones, runId y
+reconciliación de CU-01. Impacto: coordinación y regresiones concurrentes, sin
+cambio de alcance ni aceptación de esta SPEC. Evidencia en TASKS de consultas.

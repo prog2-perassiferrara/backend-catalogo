@@ -2,7 +2,7 @@ package com.prog2.catalog.synchronization;
 
 import java.time.*;
 import java.util.*;
-import java.util.concurrent.locks.ReentrantLock;
+import com.prog2.catalog.synchronization.application.service.CatalogSynchronizationGuard;
 import org.junit.jupiter.api.*;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -129,7 +129,7 @@ class CatalogUpdatePersistenceTests {
         var recovery=mock(RecoverCatalogUseCase.class);
         when(recovery.resume()).thenReturn(Optional.empty());
         var useCase=new UpdateCatalogUseCaseImpl(gateway,uncertain,recovery,mock(TechnicalAccessGateway.class),
-                Clock.fixed(SnapshotFixtures.TIME,ZoneOffset.UTC),Duration.ZERO,new ReentrantLock());
+                Clock.fixed(SnapshotFixtures.TIME,ZoneOffset.UTC),Duration.ZERO,new CatalogSynchronizationGuard());
         var event=notice("lost-confirmation",10);
         assertThat(useCase.process(event).recorded()).isTrue();
         assertThat(useCase.process(event).recorded()).isTrue();
@@ -141,7 +141,7 @@ class CatalogUpdatePersistenceTests {
 
     @Test void discontinuityUsesTheRealSnapshotAndItsVersionAsTheNewBase() {
         var clock = Clock.fixed(SnapshotFixtures.TIME, ZoneOffset.UTC);
-        var lock = new ReentrantLock();
+        var lock = new CatalogSynchronizationGuard();
         var access = mock(TechnicalAccessGateway.class);
         when(access.getToken()).thenReturn("fictional-access");
         var download = mock(CatalogSnapshotGateway.class);

@@ -103,7 +103,9 @@ public class SecurityConfiguration {
                         // Permite el despacho interno de un error, no una llamada externa a /error.
                         .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
                         .requestMatchers(HttpMethod.GET, "/actuator/health").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/internal/catedra/token")
+                        .requestMatchers(HttpMethod.GET, "/api/internal/catedra/token",
+                                "/api/internal/catalog/professionals/{professionalId}",
+                                "/api/internal/catalog/synchronization")
                             .access((identity, _) -> new AuthorizationDecision(
                                     identity.get() instanceof JwtAuthenticationToken jwt
                                     && "service".equals(jwt.getToken().getClaimAsString("token_use"))

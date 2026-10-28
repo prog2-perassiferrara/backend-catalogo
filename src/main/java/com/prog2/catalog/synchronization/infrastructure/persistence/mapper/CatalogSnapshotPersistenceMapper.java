@@ -22,6 +22,19 @@ public class CatalogSnapshotPersistenceMapper {
         return new WeeklyScheduleEntity(value);
     }
 
+    /** Materializa el profesional antes de cerrar la transacción de lectura. */
+    public Professional toDomain(ProfessionalEntity value) {
+        return new Professional(value.getId(), value.getCategoryId(), value.getFirstName(), value.getLastName(),
+                value.getEnabled(), value.getCreatedAt(), value.getUpdatedAt());
+    }
+
+    /** Conserva horas locales y habilitación, sin calcular disponibilidad. */
+    public WeeklySchedule toDomain(WeeklyScheduleEntity value) {
+        return new WeeklySchedule(value.getId(), value.getProfessionalId(), value.getDayOfWeek(),
+                value.getStartTime(), value.getEndTime(), value.getSlotDurationMinutes(), value.getEnabled(),
+                value.getCreatedAt(), value.getUpdatedAt());
+    }
+
     public CatalogState toDomain(CatalogSyncStateEntity value) {
         return new CatalogState(value.getAppliedVersion(), uuid(value.getAppliedRunId()),
                 value.getGeneratedAt(), value.getAppliedAt(), uuid(value.getLastRunId()),
