@@ -100,3 +100,13 @@ La prueba SQL de vista consistente y la de exclusión del coordinador quedaron
 juntas en `CatalogQueryConcurrencyTests`, reutilizando el mismo entorno real,
 en vez de añadir otra clase de persistencia. El ensayo operativo se realizó con
 el JAR, sin requerir reconstruir el Compose personal.
+
+**Revisión posterior, 2026-10-27:** eliminados dos imports redundantes (S1128) y
+condicionado el cálculo del diagnóstico a `WARN` habilitado (S2629). En el reloj
+mutable de pruebas se conserva igualdad por identidad, documentada y con supresión
+local de S2160; sin cambios funcionales ni de contratos. Validación:
+`./mvnw -B -ntp -Dtest=CatalogStorageFailureTests,ProfessionalAgendaQueryTests,CatalogQueryConcurrencyTests,CatalogQueryHttpTests test`,
+42 pruebas correctas, sin fallos/errores/omisiones. Sonar for IDE sin hallazgos y
+escaneo de secretos CLI correcto en los cuatro Java modificados; `git diff --check`
+correcto. La suite completa anterior y el análisis remoto del PR corresponden a
+la revisión previa a estos ajustes.

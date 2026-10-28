@@ -25,7 +25,6 @@ import com.prog2.catalog.synchronization.infrastructure.persistence.entity.Catal
 import com.prog2.catalog.synchronization.infrastructure.persistence.mapper.CatalogSnapshotPersistenceMapper;
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.Mockito.*;
-import static org.mockito.ArgumentMatchers.*;
 
 /** Lectores y escritores SQL reales; los spies solo detienen fronteras para ordenar los intercalados. */
 @Testcontainers

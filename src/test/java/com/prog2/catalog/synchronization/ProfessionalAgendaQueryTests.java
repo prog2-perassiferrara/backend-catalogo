@@ -15,7 +15,6 @@ import com.prog2.catalog.synchronization.domain.model.*;
 import com.prog2.catalog.synchronization.domain.ports.out.*;
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.Mockito.*;
-import static org.mockito.ArgumentMatchers.*;
 
 /** Casos de uso reales; los dobles controlan lectura y reloj, no reemplazan la política de vigencia. */
 class ProfessionalAgendaQueryTests {

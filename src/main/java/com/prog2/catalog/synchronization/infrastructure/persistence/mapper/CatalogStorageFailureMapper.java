@@ -37,7 +37,9 @@ public final class CatalogStorageFailureMapper {
         if (failure instanceof TransientDataAccessException) {
             return new CatalogSnapshotException(SnapshotFailureKind.TEMPORARY, "LOCAL_STORAGE_TEMPORARY");
         }
-        LOGGER.warn("Unclassified catalog storage failure types: {}", failureTypes(failure));
+        if (LOGGER.isWarnEnabled()) {
+            LOGGER.warn("Unclassified catalog storage failure types: {}", failureTypes(failure));
+        }
         return new CatalogSnapshotException(SnapshotFailureKind.TERMINAL, "LOCAL_STORAGE_FAILURE");
     }
 

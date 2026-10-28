@@ -52,7 +52,11 @@ public class CatalogQueryTestConfiguration {
         return new GetCatalogStatusUseCaseImpl(repository, access, guard, policy);
     }
 
-    /** Reloj controlado entre hilos, sin sleeps para probar vencimientos. */
+    /**
+     * Reloj controlado entre hilos, sin sleeps para probar vencimientos.
+     * Conserva igualdad por identidad: el instante mutable no define el valor del reloj.
+     */
+    @SuppressWarnings("java:S2160")
     static final class QueryClock extends Clock {
         private final AtomicReference<Instant> now = new AtomicReference<>(JwtTestTokens.NOW);
         void set(Instant instant) { now.set(instant); }
