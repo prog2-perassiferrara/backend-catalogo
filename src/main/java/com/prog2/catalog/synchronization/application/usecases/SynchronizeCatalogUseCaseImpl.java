@@ -3,7 +3,7 @@ package com.prog2.catalog.synchronization.application.usecases;
 import java.time.Clock;
 import java.time.Duration;
 import java.util.UUID;
-import java.util.concurrent.locks.ReentrantLock;
+import com.prog2.catalog.synchronization.application.service.CatalogSynchronizationGuard;
 
 import com.prog2.catalog.synchronization.domain.enums.*;
 import com.prog2.catalog.synchronization.domain.exception.CatalogSnapshotException;
@@ -22,10 +22,10 @@ public class SynchronizeCatalogUseCaseImpl implements SynchronizeCatalogUseCase 
     private final TechnicalAccessGateway access;
     private final Clock clock;
     private final Duration retryDelay;
-    private final ReentrantLock cycleLock;
+    private final CatalogSynchronizationGuard cycleLock;
 
     public SynchronizeCatalogUseCaseImpl(CatalogSnapshotGateway snapshots, CatalogSnapshotRepository repository,
-            TechnicalAccessGateway access, Clock clock, Duration retryDelay, ReentrantLock cycleLock) {
+            TechnicalAccessGateway access, Clock clock, Duration retryDelay, CatalogSynchronizationGuard cycleLock) {
         this.snapshots = snapshots;
         this.repository = repository;
         this.access = access;
@@ -36,13 +36,14 @@ public class SynchronizeCatalogUseCaseImpl implements SynchronizeCatalogUseCase 
 
     @Override
     public SynchronizationResult synchronize() {
-        if (!cycleLock.tryLock()) {
+        if (!cycleLock.trySynchronize()) {
             return new SynchronizationResult(SynchronizationPhase.BUSY, 0, "SNAPSHOT_BUSY");
         }
         try {
+            cycleLock.requireVerification();
             return runCycle(UUID.randomUUID());
         } finally {
-            cycleLock.unlock();
+            cycleLock.endSynchronization();
         }
     }
 

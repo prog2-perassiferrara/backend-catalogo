@@ -2,7 +2,7 @@ package com.prog2.catalog.synchronization.application.usecases;
 
 import java.time.*;
 import java.util.Optional;
-import java.util.concurrent.locks.ReentrantLock;
+import com.prog2.catalog.synchronization.application.service.CatalogSynchronizationGuard;
 import com.prog2.catalog.synchronization.domain.enums.*;
 import com.prog2.catalog.synchronization.domain.model.SynchronizationResult;
 import com.prog2.catalog.synchronization.domain.ports.in.*;
@@ -18,14 +18,14 @@ public class RecoverCatalogUseCaseImpl implements RecoverCatalogUseCase {
     private final CatalogUpdateRepository repository;
     private final TechnicalAccessGateway access;
     private final Clock clock;
-    private final ReentrantLock lock;
+    private final CatalogSynchronizationGuard lock;
     private CatalogRecoveryReason pending;
     private Instant nextAttempt;
     private int cycles;
     private SynchronizationResult stopped;
 
     public RecoverCatalogUseCaseImpl(SynchronizeCatalogUseCase snapshots, CatalogUpdateRepository repository,
-            TechnicalAccessGateway access, Clock clock, ReentrantLock lock) {
+            TechnicalAccessGateway access, Clock clock, CatalogSynchronizationGuard lock) {
         this.snapshots = snapshots;
         this.repository = repository;
         this.access = access;
@@ -35,19 +35,20 @@ public class RecoverCatalogUseCaseImpl implements RecoverCatalogUseCase {
 
     @Override
     public SynchronizationResult recover(CatalogRecoveryReason reason) {
-        if (!lock.tryLock()) { return busy(); }
+        if (!lock.trySynchronize()) { return busy(); }
         try {
             if (pending == null) { pending = reason; }
+            lock.requireVerification();
             return attempt();
-        } finally { lock.unlock(); }
+        } finally { lock.endSynchronization(); }
     }
 
     @Override
     public Optional<SynchronizationResult> resume() {
-        if (!lock.tryLock()) { return Optional.of(busy()); }
+        if (!lock.trySynchronize()) { return Optional.of(busy()); }
         try {
             return pending == null ? Optional.empty() : Optional.of(attempt());
-        } finally { lock.unlock(); }
+        } finally { lock.endSynchronization(); }
     }
 
     private SynchronizationResult attempt() {

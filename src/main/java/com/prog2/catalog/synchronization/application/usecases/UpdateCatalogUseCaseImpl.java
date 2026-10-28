@@ -2,7 +2,7 @@ package com.prog2.catalog.synchronization.application.usecases;
 
 import java.time.*;
 import java.util.UUID;
-import java.util.concurrent.locks.ReentrantLock;
+import com.prog2.catalog.synchronization.application.service.CatalogSynchronizationGuard;
 import com.prog2.catalog.synchronization.domain.enums.*;
 import com.prog2.catalog.synchronization.domain.exception.*;
 import com.prog2.catalog.synchronization.domain.model.*;
@@ -21,13 +21,13 @@ public class UpdateCatalogUseCaseImpl implements UpdateCatalogUseCase {
     private final TechnicalAccessGateway access;
     private final Clock clock;
     private final Duration retryDelay;
-    private final ReentrantLock lock;
+    private final CatalogSynchronizationGuard lock;
     private Instant nextAttempt;
     private CatalogUpdateResult stopped;
 
     public UpdateCatalogUseCaseImpl(CatalogChangesGateway changes, CatalogUpdateRepository repository,
             RecoverCatalogUseCase recovery, TechnicalAccessGateway access,
-            Clock clock, Duration retryDelay, ReentrantLock lock) {
+            Clock clock, Duration retryDelay, CatalogSynchronizationGuard lock) {
         this.changes = changes;
         this.repository = repository;
         this.recovery = recovery;
@@ -48,7 +48,7 @@ public class UpdateCatalogUseCaseImpl implements UpdateCatalogUseCase {
 
     @Override
     public CatalogUpdateResult reject(RejectedCatalogRecord rejection) {
-        if (!lock.tryLock()) { return busy(); }
+        if (!lock.trySynchronize()) { return busy(); }
         try {
             if (stopped != null) { return stopped; }
             access.getToken();
@@ -56,11 +56,11 @@ public class UpdateCatalogUseCaseImpl implements UpdateCatalogUseCase {
             return recorded("CATALOG_RECORD_REJECTED");
         } catch (CatalogSnapshotException failure) {
             return failed(failure, Duration.ofSeconds(30));
-        } finally { lock.unlock(); }
+        } finally { lock.endSynchronization(); }
     }
 
     private CatalogUpdateResult execute(CatalogNotification notification) {
-        if (!lock.tryLock()) { return busy(); }
+        if (!lock.trySynchronize()) { return busy(); }
         try {
             if (stopped != null) { return stopped; }
             access.getToken();
@@ -79,10 +79,11 @@ public class UpdateCatalogUseCaseImpl implements UpdateCatalogUseCase {
             return run(new UpdateCycle(notification));
         } catch (CatalogSnapshotException failure) {
             return failed(failure, Duration.ofSeconds(30));
-        } finally { lock.unlock(); }
+        } finally { lock.endSynchronization(); }
     }
 
     private CatalogUpdateResult run(UpdateCycle cycle) {
+        lock.requireVerification();
         repository.report(SynchronizationPhase.IN_PROGRESS, "CATALOG_UPDATE_IN_PROGRESS");
         for (int attempt = 1; attempt <= 3 && !Thread.currentThread().isInterrupted(); attempt++) {
             try {
@@ -111,7 +112,10 @@ public class UpdateCatalogUseCaseImpl implements UpdateCatalogUseCase {
         CatalogState state = repository.getState();
         if (cycle.uncertain) {
             cycle.uncertain = false;
-            if (cycle.runId.equals(state.appliedRunId())) { return confirmed(cycle.notification, state); }
+            if (cycle.runId.equals(state.appliedRunId())) {
+                lock.confirmVerification();
+                return confirmed(cycle.notification, state);
+            }
         }
         if (cycle.candidate == null) {
             cycle.candidate = changes.readSince(state.appliedVersion());
@@ -131,6 +135,7 @@ public class UpdateCatalogUseCaseImpl implements UpdateCatalogUseCase {
             state = repository.apply(cycle.runId, cycle.candidate, cycle.notification);
         }
         nextAttempt = null;
+        lock.confirmVerification();
         return confirmed(cycle.notification, state);
     }
 
@@ -158,6 +163,7 @@ public class UpdateCatalogUseCaseImpl implements UpdateCatalogUseCase {
     }
 
     private CatalogUpdateResult failed(CatalogSnapshotException failure, Duration delay) {
+        lock.requireVerification();
         nextAttempt = clock.instant().plus(delay);
         if (failure.kind() == SnapshotFailureKind.UNAUTHORIZED) { access.invalidate(); }
         SynchronizationPhase phase = failure.kind() == SnapshotFailureKind.UNCERTAIN

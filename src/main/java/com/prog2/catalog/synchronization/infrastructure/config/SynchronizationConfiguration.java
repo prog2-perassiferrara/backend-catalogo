@@ -2,7 +2,7 @@ package com.prog2.catalog.synchronization.infrastructure.config;
 
 import java.time.Clock;
 import java.time.Duration;
-import java.util.concurrent.locks.ReentrantLock;
+import com.prog2.catalog.synchronization.application.service.CatalogSynchronizationGuard;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import org.springframework.context.annotation.Bean;
@@ -13,6 +13,11 @@ import com.prog2.catalog.infrastructure.config.IntegrationProperties;
 import com.prog2.catalog.synchronization.application.usecases.SynchronizeCatalogUseCaseImpl;
 import com.prog2.catalog.synchronization.application.usecases.RecoverCatalogUseCaseImpl;
 import com.prog2.catalog.synchronization.application.usecases.UpdateCatalogUseCaseImpl;
+import com.prog2.catalog.synchronization.application.usecases.GetProfessionalAgendaUseCaseImpl;
+import com.prog2.catalog.synchronization.application.usecases.GetCatalogStatusUseCaseImpl;
+import com.prog2.catalog.synchronization.application.service.CatalogStatusPolicy;
+import com.prog2.catalog.synchronization.domain.ports.in.GetProfessionalAgendaUseCase;
+import com.prog2.catalog.synchronization.domain.ports.in.GetCatalogStatusUseCase;
 import com.prog2.catalog.synchronization.domain.ports.in.RecoverCatalogUseCase;
 import com.prog2.catalog.synchronization.domain.ports.in.UpdateCatalogUseCase;
 import com.prog2.catalog.infrastructure.config.CatalogRemoteClients;
@@ -41,14 +46,14 @@ public class SynchronizationConfiguration {
 
     @Bean
     RecoverCatalogUseCase recoverCatalogUseCase(SynchronizeCatalogUseCase snapshots, CatalogUpdateRepository repository,
-            TechnicalAccessGateway access, Clock clock, ReentrantLock catalogSynchronizationLock) {
+            TechnicalAccessGateway access, Clock clock, CatalogSynchronizationGuard catalogSynchronizationLock) {
         return new RecoverCatalogUseCaseImpl(snapshots, repository, access, clock, catalogSynchronizationLock);
     }
 
     @Bean
     UpdateCatalogUseCase updateCatalogUseCase(CatalogChangesGateway changes, CatalogUpdateRepository repository,
             RecoverCatalogUseCase recovery, TechnicalAccessGateway access,
-            Clock clock, ReentrantLock catalogSynchronizationLock) {
+            Clock clock, CatalogSynchronizationGuard catalogSynchronizationLock) {
         return new UpdateCatalogUseCaseImpl(changes, repository, recovery, access, clock,
                 Duration.ofSeconds(5), catalogSynchronizationLock);
     }
@@ -78,14 +83,29 @@ public class SynchronizationConfiguration {
     }
 
     @Bean
-    ReentrantLock catalogSynchronizationLock() {
-        return new ReentrantLock();
+    CatalogSynchronizationGuard catalogSynchronizationLock() {
+        return new CatalogSynchronizationGuard();
+    }
+
+    @Bean
+    CatalogStatusPolicy catalogStatusPolicy(Clock clock) { return new CatalogStatusPolicy(clock); }
+
+    @Bean
+    GetProfessionalAgendaUseCase getProfessionalAgendaUseCase(CatalogQueryRepository repository,
+            TechnicalAccessGateway access, CatalogSynchronizationGuard guard, CatalogStatusPolicy policy) {
+        return new GetProfessionalAgendaUseCaseImpl(repository, access, guard, policy);
+    }
+
+    @Bean
+    GetCatalogStatusUseCase getCatalogStatusUseCase(CatalogQueryRepository repository,
+            TechnicalAccessGateway access, CatalogSynchronizationGuard guard, CatalogStatusPolicy policy) {
+        return new GetCatalogStatusUseCaseImpl(repository, access, guard, policy);
     }
 
     @Bean
     SynchronizeCatalogUseCase synchronizeCatalogUseCase(CatalogSnapshotGateway gateway,
             CatalogSnapshotRepository repository, TechnicalAccessGateway access, Clock clock,
-            ReentrantLock catalogSynchronizationLock) {
+            CatalogSynchronizationGuard catalogSynchronizationLock) {
         return new SynchronizeCatalogUseCaseImpl(gateway, repository, access, clock, Duration.ofSeconds(5),
                 catalogSynchronizationLock);
     }

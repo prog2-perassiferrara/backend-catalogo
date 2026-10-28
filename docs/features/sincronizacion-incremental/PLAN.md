@@ -53,6 +53,17 @@ T-01/T-03/T-04/T-05/T-06/T-07); resultados posteriores en TASKS.
 
 ## Contexto técnico verificado
 
+**Corrección posterior, 2026-10-27:** autorizada por el usuario antes de continuar
+las consultas de catálogo. Un timeout real al confirmar metadata se clasificó
+como terminal y detuvo el seguimiento. Se ajustará la traducción compartida de
+los adaptadores JPA de snapshot e incrementos para reconocer SQLState de conexión
+`08`, tipos JDBC de conexión o un fallo transaccional Hibernate con SQLException
+sin SQLState tras fallar el rollback, conservando resultado incierto. Validar el fallo
+de commit antes/después de confirmar y el rollback con conexión cerrada en MySQL real,
+reconciliación y reanudación posterior sin reiniciar; mantener terminales los
+errores SQL permanentes. Afecta RF-06/RF-08/RF-09 y CA-03/CA-08/CA-09/CA-10,
+sin nuevos requisitos, dependencias, timeouts ni cambios de políticas.
+
 <!-- Componentes existentes y participación prevista. Rutas bajo src/main/java/com/prog2/catalog/. -->
 
 | Componente o archivo existente | Ruta verificada | Responsabilidad y uso previsto |
@@ -285,7 +296,7 @@ end
 - **Arranque:** login/configuración → ciclo inicial de CU-01 → seguimiento si existe copia confirmada y acceso habilitado. Si no hay copia, conservar la política inicial: proceso activo y consultas indisponibles. No crear un consumidor con credenciales ficticias ni copiar topic/servidores a nuevas variables estáticas.
 - **Acceso durante la ejecución:** antes de cada intento o reanudación, comprobar por el puerto interno que la sesión técnica sigue utilizable. Redis/Kafka usan su propia configuración de conexión, sin recibir el JWT como credencial. Si el acceso técnico vence o se invalida, detener trabajo y consumo; no seguir usando conexiones abiertas como prueba de autorización ni reloguear automáticamente.
 - **Clientes dinámicos:** construir un `KafkaMessageListenerContainer` de Spring Kafka después de adquirir la configuración, con el listener inyectado, topic y grupo recibidos. Es la misma biblioteca acordada; registrar directamente el listener evita beans prototype y expresiones adicionales para adaptar `@KafkaListener` a datos conocidos después del login. Crear igualmente `LettuceConnectionFactory` y `StringRedisTemplate` con la configuración adquirida y cierre explícito. La composición crea colaboradores, el consumidor no construye casos de uso. [Contenedores dinámicos de Spring Kafka](https://docs.spring.io/spring-kafka/reference/kafka/dynamic-containers.html), [conexiones Redis](https://docs.spring.io/spring-data/redis/reference/redis/drivers.html).
-- **Concurrencia:** un bloqueo `ReentrantLock` compartido entre snapshot, incrementos y recuperación, inyectado desde configuración. La reentrada permite CU-03 → CU-01 dentro de la misma coordinación. Una entrada competidora devuelve ocupado y se reprograma, sin esperar indefinidamente. HTTP/Redis y pausas no mantienen una transacción MySQL abierta. Liberar el bloqueo entre ciclos y durante sus pausas largas, conservando la recuperación pendiente que impide otros incrementos.
+- **Concurrencia:** un `CatalogSynchronizationGuard` compartido entre snapshot, incrementos y recuperación, inyectado desde configuración. La reentrada permite CU-03 → CU-01 dentro de la misma coordinación. Una entrada competidora devuelve ocupado y se reprograma, sin esperar indefinidamente. HTTP/Redis y pausas no mantienen una transacción MySQL abierta. Liberar el bloqueo entre ciclos y durante sus pausas largas, conservando la recuperación pendiente que impide otros incrementos.
 - **Seguimiento (D-04):** scheduler dedicado de un hilo, primera comprobación al terminar CU-01 si existe copia/acceso y luego 30 segundos después de finalizar cada ejecución. No superponer tareas ni acumular ticks perdidos. Kafka puede adelantar la detección de cambios, pero no las esperas de recuperación; sin mensajes también se ejecuta `check()`. Después de snapshot, comprobar Redis antes de registrar `CURRENT`. El error de una ejecución se registra sin cancelar silenciosamente todas las futuras.
 - **Offsets:** consumidor de un hilo, `max.poll.records=1`, `enable.auto.commit=false`, `AckMode.MANUAL_IMMEDIATE`, `syncCommits=true` y `asyncAcks=false`. Sin offset previo, comenzar en `earliest`; no crear topics. Ack en el hilo consumidor solo tras recibo o rechazo confirmado. Si el resultado es espera, usar `nack(Duration)` hasta la próxima oportunidad; ese mecanismo mantiene polls durante la pausa. No devolver simplemente sin ack y permitir que un mensaje posterior lo salte. Fallo permanente detiene ese consumo y conserva el diagnóstico. [Offsets y nack](https://docs.spring.io/spring-kafka/reference/kafka/receiving-messages/message-listener-container.html).
 - **Recuperación (D-05):** cada llamada habilitada ejecuta como máximo un ciclo de CU-01, con sus 3 intentos, 5 segundos entre intentos y HTTP 5/10/20 s. Si agota un ciclo temporal, programar otro no antes de 30 segundos; un bloque admite 3 ciclos. Agotado el tercero, esperar 5 minutos desde su final antes de permitir otro bloque. Contar ciclos agotados y respetar el mismo presupuesto desde Kafka y scheduler. Las pausas se expresan con una próxima ejecución, sin dormir 5 minutos en un hilo de negocio. El éxito borra el pendiente y reinicia el presupuesto; un fallo permanente, acceso vencido o 401 detiene la recuperación automática. Esta política limita cada bloque y su frecuencia, no promete un número total finito durante toda la vida del proceso.
@@ -372,3 +383,13 @@ de implementación ni verifican el supuesto sobre el productor central.
 Cerrar decisiones y supuestos, comprobar RF/CA y las fuentes pertinentes, validar
 diagramas y rutas. No marcar Aprobado ni derivar implementación por iniciativa propia.
 -->
+
+## Ajuste técnico del 2026-10-27 para consultas concurrentes
+
+El PLAN aprobado de [agenda/estado](../consulta-agenda-estado/PLAN.md) amplía la
+coordinación a lectura/escritura reentrante. CU-02 confirma la verificación en
+memoria solo tras una publicación comprobada y persistida; fallos y recuperación
+la invalidan aun si no puede guardarse su diagnóstico. Duplicados y rechazos no
+simulan comprobaciones nuevas. Se conservan reintentos, pausas, transacciones,
+recibos, offsets y reconciliación JDBC. Impacto: coordinación y regresiones de
+CU-01/02/03 y consultas, sin modificar aceptación. Evidencia en TASKS de consultas.

@@ -3,7 +3,7 @@ package com.prog2.catalog.synchronization;
 import java.time.*;
 import java.util.*;
 import java.util.concurrent.*;
-import java.util.concurrent.locks.ReentrantLock;
+import com.prog2.catalog.synchronization.application.service.CatalogSynchronizationGuard;
 import org.junit.jupiter.api.*;
 import com.prog2.catalog.synchronization.application.usecases.*;
 import com.prog2.catalog.synchronization.domain.enums.*;
@@ -23,7 +23,7 @@ class CatalogIncrementalSynchronizationTests {
     private final RecoverCatalogUseCase recovery=mock(RecoverCatalogUseCase.class);
     private final TechnicalAccessGateway access=mock(TechnicalAccessGateway.class);
     private final Clock clock=mock(Clock.class);
-    private final ReentrantLock lock=new ReentrantLock();
+    private final CatalogSynchronizationGuard lock=new CatalogSynchronizationGuard();
     @BeforeEach void setup() {
         when(clock.instant()).thenReturn(SnapshotFixtures.TIME);
         when(repository.getState()).thenReturn(state(7,null));
@@ -213,5 +213,34 @@ class CatalogIncrementalSynchronizationTests {
         assertThat(result.safeDiagnostic()).isEqualTo("NOTIFICATION_NOT_COVERED");
         verify(repository, never()).recordCovered(any());
         verifyNoInteractions(changes);
+    }
+
+    @Test void onlyASuccessfullyCommittedCheckSatisfiesCurrentExecutionVerification() {
+        var publication = CatalogUpdatePersistenceTests.batch(7, 7, 1);
+        when(changes.readSince(7)).thenReturn(publication);
+        when(repository.checked(publication.publication())).thenReturn(state(7, null));
+        assertThat(lock.verificationRequired()).isTrue();
+        useCase().check();
+        assertThat(lock.verificationRequired()).isFalse();
+    }
+
+    @Test void duplicateAndRejectedMessagesDoNotCreateAVerification() {
+        when(repository.isProcessed("duplicate")).thenReturn(true);
+        var useCase = useCase();
+        useCase.process(CatalogUpdatePersistenceTests.notice("duplicate", 8));
+        useCase.reject(new RejectedCatalogRecord("fictional-topic", 0, 4, "INCOMPATIBLE_CATALOG_NOTIFICATION"));
+        assertThat(lock.verificationRequired()).isTrue();
+        verifyNoInteractions(changes);
+    }
+
+    @Test void failureInvalidatesCurrentExecutionEvenWhenItsDiagnosticCannotBePersisted() {
+        lock.confirmVerification();
+        when(changes.readSince(7)).thenThrow(new CatalogSnapshotException(SnapshotFailureKind.TEMPORARY, "FICTIONAL_NETWORK"));
+        when(repository.report(eq(SynchronizationPhase.FAILED), anyString()))
+                .thenThrow(new CatalogSnapshotException(SnapshotFailureKind.TEMPORARY, "FICTIONAL_STORAGE"));
+        assertThat(useCase().check().phase()).isEqualTo(SynchronizationPhase.UNVERIFIABLE);
+        assertThat(lock.verificationRequired()).isTrue();
+        assertThat(lock.trySynchronize()).isTrue();
+        lock.endSynchronization();
     }
 }

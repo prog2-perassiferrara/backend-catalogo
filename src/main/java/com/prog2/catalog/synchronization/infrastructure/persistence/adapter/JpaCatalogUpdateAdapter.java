@@ -2,13 +2,12 @@ package com.prog2.catalog.synchronization.infrastructure.persistence.adapter;
 
 import java.util.UUID;
 import java.util.function.Supplier;
-import org.springframework.dao.*;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.TransactionException;
-import com.prog2.catalog.synchronization.domain.enums.*;
+import com.prog2.catalog.synchronization.domain.enums.SynchronizationPhase;
 import com.prog2.catalog.synchronization.domain.exception.*;
 import com.prog2.catalog.synchronization.domain.model.*;
 import com.prog2.catalog.synchronization.domain.ports.out.CatalogUpdateRepository;
+import com.prog2.catalog.synchronization.infrastructure.persistence.mapper.CatalogStorageFailureMapper;
 import com.prog2.catalog.synchronization.infrastructure.persistence.service.TransactionalCatalogUpdateWriter;
 
 /** Adapter de persistencia que incluye los errores de confirmación del proxy transaccional. */
@@ -36,12 +35,8 @@ public class JpaCatalogUpdateAdapter implements CatalogUpdateRepository {
     private static <T> T storage(Supplier<T> operation) {
         try { return operation.get(); }
         catch (CatalogSnapshotException | CatalogDiscontinuityException failure) { throw failure; }
-        catch (TransientDataAccessException _) {
-            throw new CatalogSnapshotException(SnapshotFailureKind.TEMPORARY, "LOCAL_STORAGE_TEMPORARY");
-        } catch (DataAccessResourceFailureException | TransactionException _) {
-            throw new CatalogSnapshotException(SnapshotFailureKind.UNCERTAIN, "LOCAL_STORAGE_UNCERTAIN");
-        } catch (RuntimeException _) {
-            throw new CatalogSnapshotException(SnapshotFailureKind.TERMINAL, "LOCAL_STORAGE_FAILURE");
+        catch (RuntimeException failure) {
+            throw CatalogStorageFailureMapper.translate(failure);
         }
     }
 }

@@ -4,7 +4,7 @@ import java.time.*;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.concurrent.locks.ReentrantLock;
+import com.prog2.catalog.synchronization.application.service.CatalogSynchronizationGuard;
 import org.apache.kafka.clients.admin.*;
 import org.apache.kafka.clients.producer.*;
 import org.apache.kafka.common.TopicPartition;
@@ -96,7 +96,7 @@ class CatalogNotificationConsumerTests {
         var recovery=mock(RecoverCatalogUseCase.class);
         when(recovery.resume()).thenReturn(Optional.empty());
         return new UpdateCatalogUseCaseImpl(gateway,repository,recovery,mock(TechnicalAccessGateway.class),
-                clock,Duration.ZERO,new ReentrantLock());
+                clock,Duration.ZERO,new CatalogSynchronizationGuard());
     }
     private void start(UpdateCatalogUseCase useCase) {
         remote=new CatalogRemoteClients(json,clock);

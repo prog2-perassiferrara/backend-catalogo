@@ -14,6 +14,7 @@ Valida JWT RS256 de Turnos y entrega el token técnico mediante un endpoint prot
 La emisión de JWT y el registro/login de usuarios corresponden a Turnos.
 Descarga un snapshot en cada arranque y mantiene la copia local mediante Kafka,
 Redis y comprobaciones periódicas; recupera discontinuidades con otro snapshot.
+Expone profesional/agendas vigentes a Turnos y estado funcional diferenciado para Turnos y KMP.
 
 ## Requisitos
 
@@ -98,10 +99,9 @@ nula significa ausencia de copia, distinta de un snapshot vacío aplicado.
 
 Los logs muestran `Catalog snapshot: SNAPSHOT_APPLIED` o un diagnóstico seguro.
 Ese estado confirma consistencia en una versión, no vigencia continua frente a
-cambios centrales posteriores. Las APIs de búsqueda, agendas y estado siguen
-pendientes. Durante carga o fallo se
-conserva la copia anterior; su futura API deberá advertir a KMP y hacer esperar
-a Turnos cuando la operación requiera vigencia. Sin acceso a MySQL, conservar
+cambios centrales posteriores. La API de búsqueda sigue pendiente. Durante carga o fallo se
+conserva la copia anterior; las consultas de estado permiten advertir a KMP y
+las de agenda hacen esperar a Turnos cuando la operación requiere vigencia. Sin acceso a MySQL, conservar
 los datos no garantiza poder consultarlos.
 
 Los instantes se almacenan en UTC con precisión de microsegundos de MySQL.
@@ -125,8 +125,9 @@ recibo persistido; un mensaje incompatible deja un rechazo por topic/partición/
 offset antes de avanzar, sin presentarlo como una actualización aplicada.
 
 Además se comprueba Redis inmediatamente y cada 30 s desde el fin de la ejecución
-anterior. Esto permite detectar notificaciones perdidas. Un bloqueo compartido
-impide superponer snapshot, incrementos y recuperación; la red y las pausas no
+anterior. Esto permite detectar notificaciones perdidas. Un coordinador de lectura/escritura
+impide superponer snapshot, incrementos y recuperación y admite consultas concurrentes;
+la red y las pausas no
 mantienen una transacción MySQL abierta.
 
 Los incrementos admiten tres intentos con pausas de 5 s y una nueva oportunidad
@@ -139,7 +140,7 @@ Un corte temporal de Redis no provoca reconstrucciones continuas.
 `V3__catalog_updates.sql` añade recibos/rechazos y las columnas `observed_version`
 y `last_checked_at`. `CURRENT` significa versión comprobada en ese instante,
 no una promesa de vigencia permanente. `FAILED`, `UNVERIFIABLE` y
-`RECOVERY_WAITING` conservan la copia anterior; las futuras APIs aplicarán la
+`RECOVERY_WAITING` conservan la copia anterior; las consultas aplican la
 política de aviso a KMP y espera de Turnos. Health sigue midiendo proceso/MySQL,
 sin certificar Redis, Kafka ni vigencia del catálogo.
 
@@ -215,9 +216,10 @@ internos. Estas respuestas incluyen `Cache-Control: no-store` y `Pragma: no-cach
 Un usuario final no obtiene el token técnico, aunque tenga otras autoridades.
 La autorización ocurre antes de consultar la sesión central.
 
-Solo `GET /actuator/health` es público. `/api/**` requiere perfil `user` y
-`ROLE_USER`, salvo la entrega interna con su regla específica; las demás rutas
-se deniegan. Las futuras APIs incorporarán sus permisos propios.
+Solo `GET /actuator/health` es público. Las rutas internas publicadas exigen la
+identidad de servicio descrita; el resto de `/api/internal/**` se deniega.
+`/api/**` requiere perfil `user` y `ROLE_USER`, salvo esas rutas específicas;
+las demás rutas se deniegan.
 La seguridad es stateless: no hay cookies de autenticación, sesión HTTP ni login
 de formulario. CSRF está desactivado para bearer explícito en cabecera; revisar
 esa decisión si se incorporan cookies. CORS no sustituye autenticación:
@@ -231,6 +233,68 @@ no instala certificados ni proxy en esta funcionalidad. Rotación inicial manual
 reemplazar el par en Turnos y la pública en Catálogo de forma coordinada y reiniciar.
 Los JWT propios anteriores dejan de aceptarse; no cambia el JWT de cátedra.
 La implementación y prueba del consumidor real corresponden a Turnos.
+
+## Consultar profesional, agenda y estado
+
+Todas las rutas requieren `Authorization: Bearer <jwt-propio>` y responden con
+`Cache-Control: no-store`. Las consultas usan únicamente MySQL y estado local;
+no comprueban Redis ni hacen login o reconstrucciones por cada solicitud.
+
+| GET | Identidad | Resultado 200 |
+| --- | --- | --- |
+| `/api/internal/catalog/professionals/{professionalId}` | Servicio Turnos, `ROLE_CATALOG_INTEGRATION` | `professional`, `weeklySchedules` y `catalog` de una misma copia vigente. |
+| `/api/internal/catalog/synchronization` | Servicio Turnos, `ROLE_CATALOG_INTEGRATION` | Estado detallado, incluso sin copia o con sincronización fallida. |
+| `/api/catalog/synchronization` | Usuario, `ROLE_USER` | Resumen `state` y `copyAvailable`. |
+
+Ejemplo ficticio del primer contrato:
+
+```json
+{
+  "professional": {"id": 15, "categoryId": 1, "firstName": "Nombre ficticio", "lastName": "Apellido ficticio", "enabled": true},
+  "weeklySchedules": [
+    {"id": 21, "professionalId": 15, "dayOfWeek": "MONDAY", "startTime": "09:00:00", "endTime": "12:00:00", "slotDurationMinutes": 30, "enabled": true}
+  ],
+  "catalog": {"state": "CURRENT", "copyAvailable": true, "appliedVersion": 7, "observedVersion": 7, "lastCheckedAt": "2026-10-27T12:00:00Z", "evaluatedAt": "2026-10-27T12:00:05Z"}
+}
+```
+
+El estado detallado tiene los mismos campos que `catalog` del ejemplo. Versiones
+y fecha de comprobación pueden ser nulas cuando se desconocen. Los instantes son
+UTC; las horas semanales son locales de atención. Se incluyen profesionales y
+agendas deshabilitados con sus flags; profesional sin agendas devuelve `[]`.
+Orden: lunes a domingo, hora inicial e ID. Turnos decide si el profesional/horario
+es aplicable y combina estas reglas con ocupaciones para construir slots.
+
+`state` puede ser `NO_COPY`, `CURRENT`, `SYNCHRONIZING`, `RECOVERING`, `STALE`,
+`FAILED` o `UNVERIFIABLE`. `copyAvailable` indica una versión aplicada confirmada,
+incluso si el catálogo está vacío; no significa vigencia. La copia anterior con
+estado distinto de `CURRENT` permite informar posible desactualización a KMP.
+El resumen no incluye versiones, fechas, diagnósticos ni credenciales.
+
+`CURRENT` exige copia, versiones aplicada/observada iguales, comprobación de esta
+ejecución de hasta **60 segundos inclusive**, acceso técnico utilizable y ausencia
+de sincronización/recuperación o fallo invalidante. No se confía en la comprobación
+persistida de un proceso anterior; el snapshot solo no basta para habilitar Turnos.
+La evaluación describe el instante de la consulta, no garantiza cambios futuros
+ni autoriza una reserva por sí sola. El intervalo acepta posibles cambios centrales
+todavía no detectados por la comprobación periódica.
+
+Varias consultas pueden leer juntas. CU-05 no espera a una sincronización exclusiva:
+devuelve 503. CU-06 lee metadata confirmada durante esa escritura e informa
+`SYNCHRONIZING`; un fallo al leer metadata devuelve 503, no un estado inventado.
+
+Errores en `application/problem+json`, con `type`, `title`, `status`, `code` e
+`instance` de ruta sin query, sin copiar mensajes internos:
+
+| HTTP / code | Significado |
+| --- | --- |
+| 400 `INVALID_PROFESSIONAL_ID` | ID no positivo, no numérico o fuera de `long`. |
+| 404 `PROFESSIONAL_NOT_FOUND` | ID válido ausente en una copia vigente; no significa deshabilitado. |
+| 503 `CATALOG_NOT_CURRENT` | No hay condiciones de vigencia para entregar la agenda como habilitante. |
+| 503 `CATALOG_UNAVAILABLE` | No puede leerse el estado o la copia local. |
+| 401 `AUTHENTICATION_REQUIRED` / 403 `ACCESS_DENIED` | JWT no admitido o identidad sin permiso; se resuelve antes de consultar datos. |
+
+Contrato y fundamentos: [PLAN](docs/features/consulta-agenda-estado/PLAN.md).
 
 ## Ejecutar todo con Compose
 
