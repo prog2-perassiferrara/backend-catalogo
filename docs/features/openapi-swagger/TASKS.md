@@ -20,6 +20,10 @@
   - **Alcance:** README/ejemplos, JAR aislado y prueba funcional de UI; regresión y revisión local.
   - **Referencias:** RF-04, RF-05; CA-02 a CA-06. **Dependencias:** T-03.
   - **Verificación:** `clean verify`, Javadoc, Sonar CLI/IDE según disponibilidad; Compose resuelto y evidencia breve por CA.
+- [x] **T-05 · Simplificar metadatos OpenAPI**
+  - **Alcance:** constante privada para `status` y anotaciones `@ApiResponse` repetibles en las seis operaciones.
+  - **Referencias:** RF-02; CA-01, CA-02. **Dependencias:** T-02, T-03.
+  - **Verificación:** 54 pruebas focalizadas de OpenAPI y seguridad correctas; Sonar IDE sin hallazgos y escaneo de secretos correcto en los cuatro Java modificados (2026-10-30). Contrato y permisos conservados.
 
 ## Cierre
 
@@ -32,7 +36,7 @@
 | CA-05 | Cero invocaciones a los cinco puertos al leer documentación; JAR sin solicitudes centrales adicionales, con REST ficticio no disponible. Correcto. |
 | CA-06 | README actualizado y Compose resuelto con interruptor ausente, `true` y `false`. Correcto. |
 
-**Regresión:** `./mvnw -B -ntp clean verify`, 463 pruebas correctas, sin fallos,
+**Regresión inicial:** `./mvnw -B -ntp clean verify`, 463 pruebas correctas, sin fallos,
 errores ni omisiones (2026-10-30). El primer intento tuvo 19 errores al iniciar
 un contexto por timeout de lectura MySQL durante una migración; la repetición
 completa pasó sin modificar código ni límites. Foco previo: 54 pruebas correctas.

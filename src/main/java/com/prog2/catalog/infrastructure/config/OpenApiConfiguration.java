@@ -29,6 +29,7 @@ public class OpenApiConfiguration {
     public static final String PROBLEM_SCHEMA = "#/components/schemas/ApiProblem";
     public static final String UNAUTHORIZED_RESPONSE = "#/components/responses/Unauthorized";
     public static final String FORBIDDEN_RESPONSE = "#/components/responses/Forbidden";
+    private static final String STATUS_PROPERTY = "status";
 
     /** @return documento común con bearer explícito y errores producidos por los filtros de seguridad */
     @Bean
@@ -36,10 +37,10 @@ public class OpenApiConfiguration {
         var problem = new ObjectSchema()
                 .addProperty("type", new StringSchema().format("uri-reference").example("about:blank"))
                 .addProperty("title", new StringSchema())
-                .addProperty("status", new IntegerSchema().format("int32"))
+                .addProperty(STATUS_PROPERTY, new IntegerSchema().format("int32"))
                 .addProperty("code", new StringSchema().description("Código estable de la respuesta."))
                 .addProperty("instance", new StringSchema().format("uri-reference"))
-                .required(List.of("type", "status", "code"));
+                .required(List.of("type", STATUS_PROPERTY, "code"));
         var bearer = new SecurityScheme().type(SecurityScheme.Type.HTTP).scheme("bearer").bearerFormat("JWT")
                 .description("JWT propio emitido por Turnos. Usuario: token_use=user y ROLE_USER. "
                         + "Servicio: token_use=service, sub=backend-turnos y ROLE_CATALOG_INTEGRATION. "
@@ -61,6 +62,6 @@ public class OpenApiConfiguration {
                 .content(new Content().addMediaType("application/problem+json", new MediaType()
                         .schema(new Schema<>().$ref(PROBLEM_SCHEMA))
                         .example(Map.of("type", "about:blank", "title", status.getReasonPhrase(),
-                                "status", status.value(), "code", code))));
+                                STATUS_PROPERTY, status.value(), "code", code))));
     }
 }
