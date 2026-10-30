@@ -66,8 +66,7 @@ class IntegrationBehaviorTests {
             Duration timeout) {
         IntegrationProperties properties = new IntegrationProperties(server.baseUrl(),
                 "test-user", PASSWORD, "test-group");
-        return new InitializeIntegrationUseCaseImpl(new WebClientCentralIntegrationAdapter(properties,
-                JsonMapper.builder().build(), timeout), repository, clock);
+        return new InitializeIntegrationUseCaseImpl(new WebClientCentralIntegrationAdapter(properties, JsonMapper.builder().build(), timeout, timeout, timeout.multipliedBy(2)), repository, clock);
     }
 
     @Test
@@ -266,9 +265,7 @@ class IntegrationBehaviorTests {
     }
 
     private CatalogStartupRunner runner(ExecutorService executor, Duration delay) {
-        return new CatalogStartupRunner(initialize, new InvalidateTechnicalAccessUseCaseImpl(sessions),
-                () -> new SynchronizationResult(SynchronizationPhase.SNAPSHOT_APPLIED, 1, "SNAPSHOT_APPLIED"),
-                executor, delay, () -> { });
+        return new CatalogStartupRunner(initialize, new InvalidateTechnicalAccessUseCaseImpl(sessions), () -> new SynchronizationResult(SynchronizationPhase.SNAPSHOT_APPLIED, 1, "SNAPSHOT_APPLIED"), executor, 3, delay, () -> { });
     }
 
     @Test
@@ -314,6 +311,24 @@ class IntegrationBehaviorTests {
             sessions.replace(IntegrationSession.initial());
             server.respond(200, login(fictionalToken(claims), "PROVISIONED"));
             assertThat(initialize.initialize().outcome()).isEqualTo(AttemptOutcome.TERMINAL);
+        }
+    }
+
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.CsvSource({"300, 30000", "30000, 300"})
+    void appliesReadAndGlobalTimeoutsIndependently(long readMillis, long requestMillis) {
+        CountDownLatch release = new CountDownLatch(1);
+        server.waitBeforeResponding(release);
+        var properties = new IntegrationProperties(server.baseUrl(), "test-user", PASSWORD, "test-group");
+        var client = new WebClientCentralIntegrationAdapter(properties, JsonMapper.builder().build(),
+                Duration.ofSeconds(1), Duration.ofMillis(readMillis), Duration.ofMillis(requestMillis));
+        var operation = new InitializeIntegrationUseCaseImpl(client, sessions, clock);
+        try {
+            assertThat(operation.initialize().outcome()).isEqualTo(AttemptOutcome.RETRYABLE);
+            assertThat(server.requests()).hasSize(1);
+        } finally {
+            release.countDown();
         }
     }
 

@@ -1,5 +1,7 @@
 package com.prog2.catalog.synchronization;
 
+import com.prog2.catalog.synchronization.application.usecases.UpdateCatalogUseCaseImpl.IncrementalRetrySettings;
+
 import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.*;
@@ -150,8 +152,7 @@ class CatalogQueryConcurrencyTests {
         var restarted = new GetProfessionalAgendaUseCaseImpl(repository, access, freshGuard, policy);
         assertThatThrownBy(() -> restarted.get(101)).isInstanceOf(CatalogQueryException.class);
         var check = new UpdateCatalogUseCaseImpl(version -> new CatalogChangesBatch(version,
-                new CatalogPublication(version, 1, data.clock.instant()), List.of(), List.of(), List.of()),
-                data.updates, recovery(), access, data.clock, Duration.ZERO, freshGuard);
+                new CatalogPublication(version, 1, data.clock.instant()), List.of(), List.of(), List.of()), data.updates, recovery(), access, data.clock, new IncrementalRetrySettings(3, Duration.ZERO, Duration.ofSeconds(30)), freshGuard);
         assertThat(check.check().phase()).isEqualTo(SynchronizationPhase.CURRENT);
         assertThat(restarted.get(101).catalog().appliedVersion()).isEqualTo(8);
     }
@@ -159,13 +160,11 @@ class CatalogQueryConcurrencyTests {
     private SynchronizationPhase write(String kind) {
         var snapshot = CatalogQueryTestData.snapshot(8, "Updated", 45);
         if ("snapshot".equals(kind)) {
-            return new SynchronizeCatalogUseCaseImpl(_ -> snapshot, data.snapshots, access, data.clock,
-                    Duration.ZERO, data.guard).synchronize().phase();
+            return new SynchronizeCatalogUseCaseImpl(_ -> snapshot, data.snapshots, access, data.clock, 3, Duration.ZERO, data.guard).synchronize().phase();
         }
         var batch = new CatalogChangesBatch(7, new CatalogPublication(8, 1, data.clock.instant()),
                 snapshot.professionalCategories(), snapshot.professionals(), snapshot.weeklySchedules());
-        return new UpdateCatalogUseCaseImpl(_ -> batch, data.updates, recovery(), access, data.clock,
-                Duration.ZERO, data.guard).check().phase();
+        return new UpdateCatalogUseCaseImpl(_ -> batch, data.updates, recovery(), access, data.clock, new IncrementalRetrySettings(3, Duration.ZERO, Duration.ofSeconds(30)), data.guard).check().phase();
     }
 
     private static RecoverCatalogUseCase recovery() {

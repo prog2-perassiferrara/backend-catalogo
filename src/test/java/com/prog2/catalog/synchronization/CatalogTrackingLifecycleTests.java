@@ -1,5 +1,7 @@
 package com.prog2.catalog.synchronization;
 
+import java.time.Duration;
+
 import java.util.concurrent.*;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -21,12 +23,11 @@ class CatalogTrackingLifecycleTests {
     private final CatalogSnapshotRepository snapshots = mock(CatalogSnapshotRepository.class);
     private final UpdateCatalogUseCase updates = mock(UpdateCatalogUseCase.class);
     private final ScheduledExecutorService scheduler = mock(ScheduledExecutorService.class);
-    private final CatalogSynchronizationMonitor monitor = new CatalogSynchronizationMonitor(
-            clients, settings, snapshots, updates, scheduler);
+    private final CatalogSynchronizationMonitor monitor = new CatalogSynchronizationMonitor(clients, settings, snapshots, updates, scheduler, Duration.ofSeconds(30));
     private Runnable tick;
 
     @BeforeEach void prepare() {
-        when(scheduler.scheduleWithFixedDelay(any(Runnable.class), eq(0L), eq(30L), eq(TimeUnit.SECONDS)))
+        when(scheduler.scheduleWithFixedDelay(any(Runnable.class), eq(0L), eq(30000L), eq(TimeUnit.MILLISECONDS)))
                 .thenAnswer(call -> { tick = call.getArgument(0); return mock(ScheduledFuture.class); });
         when(snapshots.getState()).thenReturn(copy(7L));
         when(settings.getSettings()).thenReturn(new CatalogConnectionSettings("redis.test", 6379, "fictional-user",
@@ -54,7 +55,7 @@ class CatalogTrackingLifecycleTests {
         monitor.start();
         tick.run();
         verify(updates).check();
-        verify(scheduler).scheduleWithFixedDelay(any(Runnable.class), eq(0L), eq(30L), eq(TimeUnit.SECONDS));
+        verify(scheduler).scheduleWithFixedDelay(any(Runnable.class), eq(0L), eq(30000L), eq(TimeUnit.MILLISECONDS));
     }
 
     @ParameterizedTest

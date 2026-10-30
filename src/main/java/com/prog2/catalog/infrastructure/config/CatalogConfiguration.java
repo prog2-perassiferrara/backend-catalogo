@@ -1,7 +1,6 @@
 package com.prog2.catalog.infrastructure.config;
 
 import java.time.Clock;
-import java.time.Duration;
 import java.util.concurrent.Executors;
 
 import org.springframework.beans.factory.config.BeanFactoryPostProcessor;
@@ -28,12 +27,20 @@ public class CatalogConfiguration {
      */
     @Bean
     static BeanFactoryPostProcessor requiredIntegrationSettings(Environment environment) {
-        return beanFactory -> IntegrationProperties.from(environment);
+        return beanFactory -> {
+            IntegrationProperties.from(environment);
+            CatalogOperationalProperties.from(environment);
+        };
     }
 
     @Bean
     IntegrationProperties integrationProperties(Environment environment) {
         return IntegrationProperties.from(environment);
+    }
+
+    @Bean
+    CatalogOperationalProperties catalogOperationalProperties(Environment environment) {
+        return CatalogOperationalProperties.from(environment);
     }
 
     @Bean
@@ -44,9 +51,9 @@ public class CatalogConfiguration {
     @Bean(destroyMethod = "close")
     CatalogStartupRunner catalogStartupRunner(InitializeIntegrationUseCase initialize,
             InvalidateTechnicalAccessUseCase invalidation, SynchronizeCatalogUseCase synchronization,
-            CatalogSynchronizationMonitor monitoring) {
+            CatalogSynchronizationMonitor monitoring, CatalogOperationalProperties operational) {
         return new CatalogStartupRunner(initialize, invalidation, synchronization,
                 Executors.newSingleThreadExecutor(Thread.ofPlatform().name("catalog-integration").factory()),
-                Duration.ofSeconds(5), monitoring::start);
+                operational.integration().maxAttempts(), operational.integration().retryDelay(), monitoring::start);
     }
 }

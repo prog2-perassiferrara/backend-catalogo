@@ -14,23 +14,34 @@ import com.prog2.catalog.synchronization.domain.ports.out.*;
  * Todas las entradas toman el mismo bloqueo reentrante que CU-01 y CU-02.
  */
 public class RecoverCatalogUseCaseImpl implements RecoverCatalogUseCase {
+    /**
+     * Presupuesto y pausas de recuperación, sin dependencias de configuración o infraestructura.
+     * @param maxCycles cantidad máxima de ciclos por bloque
+     * @param cycleDelay espera entre ciclos recuperables
+     * @param blockDelay espera después de agotar el bloque
+     */
+    public record RecoverySettings(int maxCycles, Duration cycleDelay, Duration blockDelay) { }
+
     private final SynchronizeCatalogUseCase snapshots;
     private final CatalogUpdateRepository repository;
     private final TechnicalAccessGateway access;
     private final Clock clock;
     private final CatalogSynchronizationGuard lock;
+    private final RecoverySettings recoverySettings;
     private CatalogRecoveryReason pending;
     private Instant nextAttempt;
     private int cycles;
     private SynchronizationResult stopped;
 
     public RecoverCatalogUseCaseImpl(SynchronizeCatalogUseCase snapshots, CatalogUpdateRepository repository,
-            TechnicalAccessGateway access, Clock clock, CatalogSynchronizationGuard lock) {
+            TechnicalAccessGateway access, Clock clock, RecoverySettings recoverySettings,
+            CatalogSynchronizationGuard lock) {
         this.snapshots = snapshots;
         this.repository = repository;
         this.access = access;
         this.clock = clock;
         this.lock = lock;
+        this.recoverySettings = recoverySettings;
     }
 
     @Override
@@ -56,7 +67,7 @@ public class RecoverCatalogUseCaseImpl implements RecoverCatalogUseCase {
         access.getToken();
         if (nextAttempt != null && clock.instant().isBefore(nextAttempt)) { return waiting(); }
         if (Thread.currentThread().isInterrupted()) { return busy(); }
-        if (cycles == 3) { cycles = 0; }
+        if (cycles == recoverySettings.maxCycles()) { cycles = 0; }
         SynchronizationResult result = snapshots.synchronize();
         if (result.phase() == SynchronizationPhase.BUSY) { return result; }
         if (result.phase() == SynchronizationPhase.SNAPSHOT_APPLIED) {
@@ -67,8 +78,8 @@ public class RecoverCatalogUseCaseImpl implements RecoverCatalogUseCase {
         }
         if (result.failureKind() == SnapshotFailureKind.TEMPORARY || result.failureKind() == SnapshotFailureKind.UNCERTAIN) {
             cycles++;
-            boolean exhausted = cycles == 3;
-            nextAttempt = clock.instant().plus(exhausted ? Duration.ofMinutes(5) : Duration.ofSeconds(30));
+            boolean exhausted = cycles == recoverySettings.maxCycles();
+            nextAttempt = clock.instant().plus(exhausted ? recoverySettings.blockDelay() : recoverySettings.cycleDelay());
             repository.report(SynchronizationPhase.RECOVERY_WAITING, "RECOVERY_" + pending.name());
             return waiting();
         }

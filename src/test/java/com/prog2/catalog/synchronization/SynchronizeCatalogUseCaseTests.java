@@ -1,5 +1,7 @@
 package com.prog2.catalog.synchronization;
 
+import com.prog2.catalog.synchronization.application.service.CatalogSynchronizationGuard;
+
 import java.time.Clock;
 import java.time.Duration;
 import java.time.ZoneOffset;
@@ -40,7 +42,7 @@ class SynchronizeCatalogUseCaseTests {
     }
 
     private SynchronizeCatalogUseCaseImpl cycle() {
-        return new SynchronizeCatalogUseCaseImpl(gateway, repository, access, clock, Duration.ZERO, new com.prog2.catalog.synchronization.application.service.CatalogSynchronizationGuard());
+        return new SynchronizeCatalogUseCaseImpl(gateway, repository, access, clock, 3, Duration.ZERO, new com.prog2.catalog.synchronization.application.service.CatalogSynchronizationGuard());
     }
 
     private static CatalogState state(UUID runId, SynchronizationPhase phase) {
@@ -257,7 +259,7 @@ class SynchronizeCatalogUseCaseTests {
             Thread.currentThread().interrupt();
             throw failure(SnapshotFailureKind.TEMPORARY);
         });
-        var useCase = new SynchronizeCatalogUseCaseImpl(gateway, repository, access, clock, Duration.ofSeconds(5), new com.prog2.catalog.synchronization.application.service.CatalogSynchronizationGuard());
+        var useCase = new SynchronizeCatalogUseCaseImpl(gateway, repository, access, clock, 3, Duration.ofSeconds(5), new com.prog2.catalog.synchronization.application.service.CatalogSynchronizationGuard());
         try {
             SynchronizationResult result = useCase.synchronize();
             assertThat(result.phase()).isEqualTo(SynchronizationPhase.FAILED);
@@ -270,4 +272,16 @@ class SynchronizeCatalogUseCaseTests {
         verify(repository).replace(any(), same(candidate));
         verify(gateway).fetch("fictional-access");
     }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(ints = {1, 2, 4})
+    void stopsAtTheConfiguredSnapshotAttemptBudget(int attempts) {
+        when(gateway.fetch("fictional-access")).thenThrow(failure(SnapshotFailureKind.TEMPORARY));
+        var operation = new SynchronizeCatalogUseCaseImpl(gateway, repository, access, clock,
+                attempts, Duration.ZERO, new CatalogSynchronizationGuard());
+        assertThat(operation.synchronize().attempts()).isEqualTo(attempts);
+        verify(gateway, times(attempts)).fetch("fictional-access");
+        verify(repository, never()).replace(any(), any());
+    }
+
 }

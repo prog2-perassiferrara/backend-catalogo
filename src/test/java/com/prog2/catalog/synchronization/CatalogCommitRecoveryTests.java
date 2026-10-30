@@ -1,5 +1,7 @@
 package com.prog2.catalog.synchronization;
 
+import com.prog2.catalog.synchronization.application.usecases.UpdateCatalogUseCaseImpl.IncrementalRetrySettings;
+
 import java.time.*;
 import java.util.*;
 import java.util.concurrent.*;
@@ -82,10 +84,10 @@ class CatalogCommitRecoveryTests {
                 "fictional-user", "fictional-redis-secret", "fictional:catalog",
                 "127.0.0.1:9092", "fictional-group", "fictional-topic"));
         var scheduler = mock(ScheduledExecutorService.class);
-        try (var monitor = new CatalogSynchronizationMonitor(clients, settings, snapshots, useCase, scheduler)) {
+        try (var monitor = new CatalogSynchronizationMonitor(clients, settings, snapshots, useCase, scheduler, Duration.ofSeconds(30))) {
             monitor.start();
             var scheduled = ArgumentCaptor.forClass(Runnable.class);
-            verify(scheduler).scheduleWithFixedDelay(scheduled.capture(), eq(0L), eq(30L), eq(TimeUnit.SECONDS));
+            verify(scheduler).scheduleWithFixedDelay(scheduled.capture(), eq(0L), eq(30000L), eq(TimeUnit.MILLISECONDS));
             Runnable check = scheduled.getValue();
             faults.arm("update catalog_sync_state", moment);
 
@@ -134,8 +136,7 @@ class CatalogCommitRecoveryTests {
     void snapshotCommitTimeoutPreservesItsReconciliationContract(CommitFaultDataSource.Moment moment) {
         var gateway = mock(CatalogSnapshotGateway.class);
         when(gateway.fetch(any())).thenReturn(SnapshotFixtures.snapshot(10, 2));
-        var useCase = new SynchronizeCatalogUseCaseImpl(gateway, snapshots, mock(TechnicalAccessGateway.class),
-                Clock.fixed(SnapshotFixtures.TIME, ZoneOffset.UTC), Duration.ZERO, new CatalogSynchronizationGuard());
+        var useCase = new SynchronizeCatalogUseCaseImpl(gateway, snapshots, mock(TechnicalAccessGateway.class), Clock.fixed(SnapshotFixtures.TIME, ZoneOffset.UTC), 3, Duration.ZERO, new CatalogSynchronizationGuard());
         faults.arm("insert into professional ", moment);
 
         assertThat(useCase.synchronize().phase()).isEqualTo(SynchronizationPhase.SNAPSHOT_APPLIED);
@@ -149,8 +150,7 @@ class CatalogCommitRecoveryTests {
     private UpdateCatalogUseCaseImpl updates(CatalogChangesGateway changes, Clock clock) {
         var recovery = mock(RecoverCatalogUseCase.class);
         when(recovery.resume()).thenReturn(Optional.empty());
-        return new UpdateCatalogUseCaseImpl(changes, updates, recovery, mock(TechnicalAccessGateway.class),
-                clock, Duration.ZERO, new CatalogSynchronizationGuard());
+        return new UpdateCatalogUseCaseImpl(changes, updates, recovery, mock(TechnicalAccessGateway.class), clock, new IncrementalRetrySettings(3, Duration.ZERO, Duration.ofSeconds(30)), new CatalogSynchronizationGuard());
     }
 
     @Test

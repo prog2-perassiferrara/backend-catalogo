@@ -55,6 +55,52 @@ Si los puertos están ocupados, cambiarlos en `.env`.
 
 Compose carga `.env` para interpolar variables. Spring Boot no lo carga automáticamente.
 
+## Parámetros operativos opcionales
+
+Los valores predeterminados están en `src/main/resources/application.yaml`.
+Las variables `CATALOG_*` siguientes permiten sobrescribirlos sin recompilar;
+`.env.example` contiene ejemplos comentados. Omitir una variable conserva su
+valor predeterminado. Una variable vacía o inválida impide completar el arranque,
+con un diagnóstico que identifica la propiedad sin mostrar su valor.
+
+| Prefijo de variable | Sufijos y valores predeterminados |
+| --- | --- |
+| `CATALOG_INTEGRATION_` | `MAX_ATTEMPTS=3`, `RETRY_DELAY_MS=5000`, `CONNECT_TIMEOUT_MS=5000`, `READ_TIMEOUT_MS=5000`, `REQUEST_TIMEOUT_MS=10000` |
+| `CATALOG_SNAPSHOT_` | `MAX_ATTEMPTS=3`, `RETRY_DELAY_MS=5000`, `CONNECT_TIMEOUT_MS=5000`, `READ_TIMEOUT_MS=10000`, `REQUEST_TIMEOUT_MS=20000` |
+| `CATALOG_INCREMENTAL_` | `MAX_ATTEMPTS=3`, `RETRY_DELAY_MS=5000`, `RETRY_COOLDOWN_MS=30000` |
+| `CATALOG_RECOVERY_` | `MAX_CYCLES=3`, `CYCLE_DELAY_MS=30000`, `BLOCK_DELAY_MS=300000` |
+| `CATALOG_REDIS_` | `CONNECT_TIMEOUT_MS=5000`, `COMMAND_TIMEOUT_MS=5000`, `READ_TIMEOUT_MS=20000` |
+| `CATALOG_KAFKA_` | `TIMEOUT_MS=10000` |
+| `CATALOG_MONITOR_` | `INTERVAL_MS=30000` |
+
+Todos aceptan enteros de 1 a 2147483647. El sufijo `MS` indica milisegundos;
+`MAX_ATTEMPTS` incluye el primer intento. Los límites HTTP separan conexión,
+espera de respuesta y solicitud completa. Redis separa conexión, comando y lote
+completo. Kafka comparte el timeout de solicitud, API y commit de offset.
+
+Incrementos usan `RETRY_DELAY_MS` entre intentos y al esperar una notificación
+aún no cubierta; `RETRY_COOLDOWN_MS` habilita la siguiente oportunidad tras un
+fallo. Recuperación usa `MAX_CYCLES` por bloque, `CYCLE_DELAY_MS` entre ciclos
+y `BLOCK_DELAY_MS` tras agotar el bloque. El monitor espera `INTERVAL_MS` después
+de completar cada comprobación. Un intervalo superior a la vigencia de 60 s
+puede dejar el catálogo en `STALE` entre comprobaciones; no cambia esa regla.
+
+Con Compose, descomentar las sobrescrituras necesarias en `.env` y recrear solo
+el backend, usando la misma imagen:
+
+```bash
+docker compose up -d --no-deps --force-recreate catalog
+```
+
+Fuera de Docker, exportar las variables o configurarlas en el IDE. Por ejemplo,
+con el resto de la configuración obligatoria ya definida:
+
+```bash
+CATALOG_SNAPSHOT_REQUEST_TIMEOUT_MS=30000 java -jar target/catalog-0.0.1-SNAPSHOT.jar
+```
+
+No hay recarga dinámica: cada proceso conserva los valores leídos al arrancar.
+
 ## Acceso técnico a cátedra
 
 Registrar la cuenta técnica una sola vez mediante Postman, según el anexo de
@@ -62,7 +108,7 @@ integración. El backend no registra cuentas ni necesita cargar en `.env` el JWT
 obtenido manualmente: hace login al arrancar con `rememberMe: true` y conserva
 JWT/configuración solo en memoria.
 
-La tarea de arranque trabaja en un hilo dedicado. Realiza hasta tres intentos
+La tarea de arranque trabaja en un hilo dedicado. Por defecto realiza hasta tres intentos
 totales, separados por cinco segundos, con timeouts de conexión y lectura de
 cinco segundos. Reintenta fallos de red, HTTP 500/503 y `PENDING`; durante
 `PENDING` consulta configuración con el mismo JWT. Los errores terminales
@@ -86,7 +132,7 @@ No hace otro login. Valida campos, tipos, IDs únicos y referencias antes de gua
 conserva también las entidades deshabilitadas y rechaza versiones menores.
 
 La descarga tiene límites de 5 s de conexión, 10 s de lectura, 20 s globales y
-8 MiB de respuesta. Su ciclo admite tres intentos totales, con pausas de 5 s,
+8 MiB de respuesta. Por defecto su ciclo admite tres intentos totales, con pausas de 5 s,
 para fallos temporales de HTTP o persistencia. Si ya obtuvo una copia válida,
 reintenta guardarla sin volver a descargarla. Al agotar el límite se recupera
 automáticamente en el próximo arranque.
@@ -130,7 +176,7 @@ impide superponer snapshot, incrementos y recuperación y admite consultas concu
 la red y las pausas no
 mantienen una transacción MySQL abierta.
 
-Los incrementos admiten tres intentos con pausas de 5 s y una nueva oportunidad
+Por defecto, los incrementos admiten tres intentos con pausas de 5 s y una nueva oportunidad
 no antes de 30 s al agotarlos. Una discontinuidad activa CU-03 y reutiliza el ciclo
 de snapshot: hasta tres ciclos por bloque, separados 30 s; después espera 5 min
 y habilita otro bloque. Mensajes adicionales no eliminan esas esperas. El fallo

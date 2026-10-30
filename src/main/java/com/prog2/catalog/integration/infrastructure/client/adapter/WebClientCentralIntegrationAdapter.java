@@ -42,16 +42,18 @@ public class WebClientCentralIntegrationAdapter implements CentralIntegrationGat
      *
      * @param properties URL e identidad técnica validadas
      * @param mapper lector de JSON para los DTO externos
-     * @param timeout límite de conexión y respuesta; la espera global usa el doble de este valor
+     * @param connectTimeout límite de conexión
+     * @param readTimeout límite de espera de respuesta
+     * @param requestTimeout límite global de la solicitud
      */
     public WebClientCentralIntegrationAdapter(IntegrationProperties properties,
-            JsonMapper mapper, Duration timeout) {
+            JsonMapper mapper, Duration connectTimeout, Duration readTimeout, Duration requestTimeout) {
         this.properties = properties;
         this.mapper = mapper;
-        this.requestTimeout = timeout.multipliedBy(2);
+        this.requestTimeout = requestTimeout;
         HttpClient client = HttpClient.create()
-                .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, Math.toIntExact(timeout.toMillis()))
-                .responseTimeout(timeout)
+                .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, Math.toIntExact(connectTimeout.toMillis()))
+                .responseTimeout(readTimeout)
                 // Reactor Netty reintenta una conexión abortada por defecto; el runner controla el límite.
                 .disableRetry(true);
         this.webClient = WebClient.builder().baseUrl(properties.baseUrl().toString())

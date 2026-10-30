@@ -1,6 +1,6 @@
 package com.prog2.catalog.integration.infrastructure.config;
 
-import java.time.Duration;
+import com.prog2.catalog.infrastructure.config.CatalogOperationalProperties;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -12,7 +12,7 @@ import com.prog2.catalog.integration.infrastructure.client.adapter.WebClientCent
 
 /**
  * Construye y conecta los componentes Spring de la integración técnica mediante inyección.
- * Utiliza las propiedades compartidas para configurar timeouts técnicos de 5 segundos.
+ * Utiliza las propiedades compartidas para configurar los límites operativos técnicos.
  * La coordinación entre acceso técnico y snapshot pertenece al arranque del backend.
  */
 @Configuration(proxyBeanMethods = false)
@@ -20,8 +20,10 @@ public class IntegrationConfiguration {
 
     @Bean
     CentralIntegrationGateway centralIntegrationGateway(IntegrationProperties properties,
-            JsonMapper mapper) {
-        return new WebClientCentralIntegrationAdapter(properties, mapper, Duration.ofSeconds(5));
+            JsonMapper mapper, CatalogOperationalProperties operational) {
+        var settings = operational.integration();
+        return new WebClientCentralIntegrationAdapter(properties, mapper, settings.connectTimeout(),
+                settings.readTimeout(), settings.requestTimeout());
     }
 
 }

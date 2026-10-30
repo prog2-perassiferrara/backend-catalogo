@@ -1,5 +1,9 @@
 package com.prog2.catalog.synchronization;
 
+import com.prog2.catalog.synchronization.application.usecases.UpdateCatalogUseCaseImpl.IncrementalRetrySettings;
+
+import com.prog2.catalog.synchronization.application.usecases.RecoverCatalogUseCaseImpl.RecoverySettings;
+
 import java.time.*;
 import java.util.*;
 import java.util.concurrent.*;
@@ -30,7 +34,7 @@ class CatalogIncrementalSynchronizationTests {
         when(recovery.resume()).thenReturn(Optional.empty());
     }
     private UpdateCatalogUseCaseImpl useCase() {
-        return new UpdateCatalogUseCaseImpl(changes,repository,recovery,access,clock,Duration.ZERO,lock);
+        return new UpdateCatalogUseCaseImpl(changes, repository, recovery, access, clock, new IncrementalRetrySettings(3, Duration.ZERO, Duration.ofSeconds(30)), lock);
     }
     private static CatalogState state(long version,UUID run) {
         return new CatalogState(version,run,SnapshotFixtures.TIME,SnapshotFixtures.TIME,run,
@@ -100,8 +104,8 @@ class CatalogIncrementalSynchronizationTests {
         var load=mock(SynchronizeCatalogUseCase.class);
         when(load.synchronize()).thenReturn(new SynchronizationResult(SynchronizationPhase.FAILED,3,
                 "FICTIONAL_TEMPORARY",SnapshotFailureKind.TEMPORARY));
-        var actualRecovery=new RecoverCatalogUseCaseImpl(load,repository,access,clock,lock);
-        var useCase=new UpdateCatalogUseCaseImpl(changes,repository,actualRecovery,access,clock,Duration.ZERO,lock);
+        var actualRecovery=new RecoverCatalogUseCaseImpl(load, repository, access, clock, new RecoverySettings(3, Duration.ofSeconds(30), Duration.ofMinutes(5)), lock);
+        var useCase=new UpdateCatalogUseCaseImpl(changes, repository, actualRecovery, access, clock, new IncrementalRetrySettings(3, Duration.ZERO, Duration.ofSeconds(30)), lock);
         when(changes.readSince(7)).thenThrow(new CatalogDiscontinuityException(CatalogRecoveryReason.CHANGE_MISSING));
         assertThat(useCase.process(CatalogUpdatePersistenceTests.notice("missing",10)).phase()).isEqualTo(SynchronizationPhase.RECOVERY_WAITING);
         useCase.process(CatalogUpdatePersistenceTests.notice("another-message",11));
@@ -121,7 +125,7 @@ class CatalogIncrementalSynchronizationTests {
         });
         when(access.getToken()).thenReturn("fictional-access");
         when(snapshots.getState()).thenReturn(state(7,null));
-        var snapshot=new SynchronizeCatalogUseCaseImpl(gateway,snapshots,access,clock,Duration.ZERO,lock);
+        var snapshot=new SynchronizeCatalogUseCaseImpl(gateway, snapshots, access, clock, 3, Duration.ZERO, lock);
         try(var executor=Executors.newSingleThreadExecutor()) {
             var running=executor.submit(snapshot::synchronize);
             try {
@@ -243,4 +247,18 @@ class CatalogIncrementalSynchronizationTests {
         assertThat(lock.trySynchronize()).isTrue();
         lock.endSynchronization();
     }
+
+    @Test void usesConfiguredAttemptsAndCooldownBeforeAnotherIncrementalCycle() {
+        when(changes.readSince(7)).thenThrow(new CatalogSnapshotException(
+                SnapshotFailureKind.TEMPORARY, "FICTIONAL_TEMPORARY"));
+        var operation = new UpdateCatalogUseCaseImpl(changes, repository, recovery, access, clock, new IncrementalRetrySettings(2, Duration.ZERO, Duration.ofMillis(750)), lock);
+        assertThat(operation.check().retryAt()).isEqualTo(SnapshotFixtures.TIME.plusMillis(750));
+        operation.check();
+        verify(changes, times(2)).readSince(7);
+        when(clock.instant()).thenReturn(SnapshotFixtures.TIME.plusMillis(750));
+        operation.check();
+        verify(changes, times(4)).readSince(7);
+        verify(repository, never()).apply(any(), any(), any());
+    }
+
 }

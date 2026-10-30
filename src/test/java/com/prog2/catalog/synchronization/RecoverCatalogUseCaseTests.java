@@ -1,5 +1,7 @@
 package com.prog2.catalog.synchronization;
 
+import com.prog2.catalog.synchronization.application.usecases.RecoverCatalogUseCaseImpl.RecoverySettings;
+
 import java.time.*;
 import com.prog2.catalog.synchronization.application.service.CatalogSynchronizationGuard;
 import org.junit.jupiter.api.Test;
@@ -21,7 +23,7 @@ class RecoverCatalogUseCaseTests {
 
     private RecoverCatalogUseCaseImpl recovery() {
         when(clock.instant()).thenReturn(SnapshotFixtures.TIME);
-        return new RecoverCatalogUseCaseImpl(snapshots, repository, access, clock, new CatalogSynchronizationGuard());
+        return new RecoverCatalogUseCaseImpl(snapshots, repository, access, clock, new RecoverySettings(3, Duration.ofSeconds(30), Duration.ofMinutes(5)), new CatalogSynchronizationGuard());
     }
 
     @Test
@@ -62,4 +64,25 @@ class RecoverCatalogUseCaseTests {
         recovery.recover(CatalogRecoveryReason.CHANGE_MISSING);
         verify(snapshots).synchronize();
     }
+
+    @Test
+    void usesConfiguredCycleCountAndBothRecoveryDelays() {
+        when(clock.instant()).thenReturn(SnapshotFixtures.TIME);
+        var operation = new RecoverCatalogUseCaseImpl(snapshots, repository, access, clock, new RecoverySettings(2, Duration.ofMillis(250), Duration.ofMillis(1250)), new CatalogSynchronizationGuard());
+        when(snapshots.synchronize()).thenReturn(new SynchronizationResult(SynchronizationPhase.FAILED,
+                1, "FICTIONAL_TEMPORARY", SnapshotFailureKind.TEMPORARY));
+        assertThat(operation.recover(CatalogRecoveryReason.CHANGE_MISSING).retryAt())
+                .isEqualTo(SnapshotFixtures.TIME.plusMillis(250));
+        when(clock.instant()).thenReturn(SnapshotFixtures.TIME.plusMillis(250));
+        assertThat(operation.resume().orElseThrow().retryAt()).isEqualTo(SnapshotFixtures.TIME.plusMillis(1500));
+        when(clock.instant()).thenReturn(SnapshotFixtures.TIME.plusMillis(1499));
+        operation.resume();
+        verify(snapshots, times(2)).synchronize();
+        when(clock.instant()).thenReturn(SnapshotFixtures.TIME.plusMillis(1500));
+        when(snapshots.synchronize()).thenReturn(new SynchronizationResult(
+                SynchronizationPhase.SNAPSHOT_APPLIED, 1, "SNAPSHOT_APPLIED"));
+        assertThat(operation.resume().orElseThrow().phase()).isEqualTo(SynchronizationPhase.SNAPSHOT_APPLIED);
+        verify(snapshots, times(3)).synchronize();
+    }
+
 }

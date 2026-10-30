@@ -24,7 +24,7 @@ import com.prog2.catalog.synchronization.domain.ports.in.SynchronizeCatalogUseCa
 public class CatalogStartupRunner implements AutoCloseable {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(CatalogStartupRunner.class);
-    private static final int MAX_ATTEMPTS = 3;
+    private final int maxAttempts;
     private final InitializeIntegrationUseCase initializeUseCase;
     private final InvalidateTechnicalAccessUseCase invalidation;
     private final SynchronizeCatalogUseCase synchronization;
@@ -38,16 +38,18 @@ public class CatalogStartupRunner implements AutoCloseable {
      * @param invalidation puerto público para cerrar acceso al agotar el ciclo técnico
      * @param synchronization carga completa, ejecutada solo después del acceso técnico disponible
      * @param executor ejecutor dedicado, cuyo cierre queda a cargo de este coordinador
+     * @param maxAttempts cantidad máxima, incluido el primer intento
      * @param retryDelay pausa entre intentos recuperables, aplicada solo si queda otro intento
      * @param monitoring activa el seguimiento después del ciclo inicial; comprueba copia y acceso
      */
     public CatalogStartupRunner(InitializeIntegrationUseCase initializeUseCase,
             InvalidateTechnicalAccessUseCase invalidation, SynchronizeCatalogUseCase synchronization,
-            ExecutorService executor, Duration retryDelay, Runnable monitoring) {
+            ExecutorService executor, int maxAttempts, Duration retryDelay, Runnable monitoring) {
         this.initializeUseCase = initializeUseCase;
         this.invalidation = invalidation;
         this.synchronization = synchronization;
         this.executor = executor;
+        this.maxAttempts = maxAttempts;
         this.retryDelay = retryDelay;
         this.monitoring = monitoring;
     }
@@ -79,17 +81,17 @@ public class CatalogStartupRunner implements AutoCloseable {
 
     private boolean initializeTechnicalAccess() {
         try {
-            for (int attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+            for (int attempt = 0; attempt < maxAttempts; attempt++) {
                 if (Thread.currentThread().isInterrupted()) {
                     return false;
                 }
                 InitializationResult result = initializeUseCase.initialize();
-                LOGGER.info("Technical integration attempt {}/{}: {}", attempt, MAX_ATTEMPTS,
+                LOGGER.info("Technical integration attempt {}/{}: {}", attempt + 1, maxAttempts,
                         result.safeDiagnostic());
                 if (result.outcome() != AttemptOutcome.RETRYABLE) {
                     return result.outcome() == AttemptOutcome.AVAILABLE;
                 }
-                if (attempt < MAX_ATTEMPTS) {
+                if (attempt + 1 < maxAttempts) {
                     Thread.sleep(retryDelay);
                 }
             }
