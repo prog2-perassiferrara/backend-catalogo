@@ -62,7 +62,7 @@ class TechnicalSnapshotAccessTests {
             var gateway = new WebClientCatalogSnapshotAdapter(server.baseUrl(), json,
                     new CatalogSnapshotResponseMapper(json), Duration.ofSeconds(1), Duration.ofSeconds(1),
                     Duration.ofSeconds(2), 8192);
-            var cycle = new SynchronizeCatalogUseCaseImpl(gateway, repository(), access, clock, Duration.ZERO, new com.prog2.catalog.synchronization.application.service.CatalogSynchronizationGuard());
+            var cycle = new SynchronizeCatalogUseCaseImpl(gateway, repository(), access, clock, 3, Duration.ZERO, new com.prog2.catalog.synchronization.application.service.CatalogSynchronizationGuard());
             var result = cycle.synchronize();
             assertThat(result.phase()).isEqualTo(SynchronizationPhase.FAILED);
             assertThat(result.failureKind()).isEqualTo(status == 401
@@ -87,7 +87,7 @@ class TechnicalSnapshotAccessTests {
                 new InvalidateTechnicalAccessUseCaseImpl(sessions),
                 new GetIntegrationConfigurationUseCaseImpl(sessions, expiredClock));
         var gateway = mock(CatalogSnapshotGateway.class);
-        var cycle = new SynchronizeCatalogUseCaseImpl(gateway, repository(), access, expiredClock, Duration.ZERO, new com.prog2.catalog.synchronization.application.service.CatalogSynchronizationGuard());
+        var cycle = new SynchronizeCatalogUseCaseImpl(gateway, repository(), access, expiredClock, 3, Duration.ZERO, new com.prog2.catalog.synchronization.application.service.CatalogSynchronizationGuard());
         assertThat(cycle.synchronize().attempts()).isEqualTo(1);
         assertThat(sessions.get().state()).isEqualTo(IntegrationState.FAILED);
         verifyNoInteractions(gateway);

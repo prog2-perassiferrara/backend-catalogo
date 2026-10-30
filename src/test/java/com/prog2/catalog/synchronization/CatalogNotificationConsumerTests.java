@@ -95,11 +95,10 @@ class CatalogNotificationConsumerTests {
     private UpdateCatalogUseCase useCase(CatalogUpdateRepository repository) {
         var recovery=mock(RecoverCatalogUseCase.class);
         when(recovery.resume()).thenReturn(Optional.empty());
-        return new UpdateCatalogUseCaseImpl(gateway,repository,recovery,mock(TechnicalAccessGateway.class),
-                clock,Duration.ZERO,new CatalogSynchronizationGuard());
+        return new UpdateCatalogUseCaseImpl(gateway, repository, recovery, mock(TechnicalAccessGateway.class), clock, 3, Duration.ZERO, Duration.ofSeconds(30), new CatalogSynchronizationGuard());
     }
     private void start(UpdateCatalogUseCase useCase) {
-        remote=new CatalogRemoteClients(json,clock);
+        remote=new CatalogRemoteClients(json, clock, Duration.ofSeconds(5), Duration.ofSeconds(5), Duration.ofSeconds(10));
         remote.start(settings,useCase);
     }
     private void send(String body) throws Exception {
@@ -206,13 +205,13 @@ class CatalogNotificationConsumerTests {
         var scheduler=mock(ScheduledExecutorService.class);
         AtomicReference<Runnable> tick=new AtomicReference<>();
         doAnswer(call -> { tick.set(call.getArgument(0)); return mock(ScheduledFuture.class); })
-                .when(scheduler).scheduleWithFixedDelay(any(Runnable.class),eq(0L),eq(30L),eq(TimeUnit.SECONDS));
-        try(var monitor=new CatalogSynchronizationMonitor(clients,configuration,snapshots,useCase(updates),scheduler)) {
+                .when(scheduler).scheduleWithFixedDelay(any(Runnable.class),eq(0L),eq(30000L),eq(TimeUnit.MILLISECONDS));
+        try(var monitor=new CatalogSynchronizationMonitor(clients, configuration, snapshots, useCase(updates), scheduler, Duration.ofSeconds(30))) {
             monitor.start(); monitor.start();
             tick.get().run();
             assertThat(snapshots.getState().appliedVersion()).isEqualTo(10);
             tick.get().run();
-            verify(scheduler).scheduleWithFixedDelay(any(Runnable.class),eq(0L),eq(30L),eq(TimeUnit.SECONDS));
+            verify(scheduler).scheduleWithFixedDelay(any(Runnable.class),eq(0L),eq(30000L),eq(TimeUnit.MILLISECONDS));
             assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM catalog_processed_event",Integer.class)).isZero();
         }
         verify(scheduler).shutdownNow();

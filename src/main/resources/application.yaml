@@ -33,6 +33,37 @@ spring:
     enabled: true
     connect-retries: 0
 
+catalog:
+  operational:
+    integration:
+      max-attempts: ${CATALOG_INTEGRATION_MAX_ATTEMPTS:3}
+      retry-delay-ms: ${CATALOG_INTEGRATION_RETRY_DELAY_MS:5000}
+      connect-timeout-ms: ${CATALOG_INTEGRATION_CONNECT_TIMEOUT_MS:5000}
+      read-timeout-ms: ${CATALOG_INTEGRATION_READ_TIMEOUT_MS:5000}
+      request-timeout-ms: ${CATALOG_INTEGRATION_REQUEST_TIMEOUT_MS:10000}
+    snapshot:
+      max-attempts: ${CATALOG_SNAPSHOT_MAX_ATTEMPTS:3}
+      retry-delay-ms: ${CATALOG_SNAPSHOT_RETRY_DELAY_MS:5000}
+      connect-timeout-ms: ${CATALOG_SNAPSHOT_CONNECT_TIMEOUT_MS:5000}
+      read-timeout-ms: ${CATALOG_SNAPSHOT_READ_TIMEOUT_MS:10000}
+      request-timeout-ms: ${CATALOG_SNAPSHOT_REQUEST_TIMEOUT_MS:20000}
+    incremental:
+      max-attempts: ${CATALOG_INCREMENTAL_MAX_ATTEMPTS:3}
+      retry-delay-ms: ${CATALOG_INCREMENTAL_RETRY_DELAY_MS:5000}
+      retry-cooldown-ms: ${CATALOG_INCREMENTAL_RETRY_COOLDOWN_MS:30000}
+    recovery:
+      max-cycles: ${CATALOG_RECOVERY_MAX_CYCLES:3}
+      cycle-delay-ms: ${CATALOG_RECOVERY_CYCLE_DELAY_MS:30000}
+      block-delay-ms: ${CATALOG_RECOVERY_BLOCK_DELAY_MS:300000}
+    redis:
+      connect-timeout-ms: ${CATALOG_REDIS_CONNECT_TIMEOUT_MS:5000}
+      command-timeout-ms: ${CATALOG_REDIS_COMMAND_TIMEOUT_MS:5000}
+      read-timeout-ms: ${CATALOG_REDIS_READ_TIMEOUT_MS:20000}
+    kafka:
+      timeout-ms: ${CATALOG_KAFKA_TIMEOUT_MS:10000}
+    monitor:
+      interval-ms: ${CATALOG_MONITOR_INTERVAL_MS:30000}
+
 server:
   port: ${APP_PORT:8080}
 

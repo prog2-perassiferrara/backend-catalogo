@@ -128,8 +128,7 @@ class CatalogUpdatePersistenceTests {
         when(gateway.readSince(7)).thenReturn(batch(7,10,2));
         var recovery=mock(RecoverCatalogUseCase.class);
         when(recovery.resume()).thenReturn(Optional.empty());
-        var useCase=new UpdateCatalogUseCaseImpl(gateway,uncertain,recovery,mock(TechnicalAccessGateway.class),
-                Clock.fixed(SnapshotFixtures.TIME,ZoneOffset.UTC),Duration.ZERO,new CatalogSynchronizationGuard());
+        var useCase=new UpdateCatalogUseCaseImpl(gateway, uncertain, recovery, mock(TechnicalAccessGateway.class), Clock.fixed(SnapshotFixtures.TIME,ZoneOffset.UTC), 3, Duration.ZERO, Duration.ofSeconds(30), new CatalogSynchronizationGuard());
         var event=notice("lost-confirmation",10);
         assertThat(useCase.process(event).recorded()).isTrue();
         assertThat(useCase.process(event).recorded()).isTrue();
@@ -146,15 +145,14 @@ class CatalogUpdatePersistenceTests {
         when(access.getToken()).thenReturn("fictional-access");
         var download = mock(CatalogSnapshotGateway.class);
         when(download.fetch(any())).thenReturn(SnapshotFixtures.snapshot(12, 3));
-        var load = new SynchronizeCatalogUseCaseImpl(download, snapshots, access, clock, Duration.ZERO, lock);
-        var recovery = new RecoverCatalogUseCaseImpl(load, updates, access, clock, lock);
+        var load = new SynchronizeCatalogUseCaseImpl(download, snapshots, access, clock, 3, Duration.ZERO, lock);
+        var recovery = new RecoverCatalogUseCaseImpl(load, updates, access, clock, 3, Duration.ofSeconds(30), Duration.ofMinutes(5), lock);
         var changes = mock(CatalogChangesGateway.class);
         when(changes.readSince(7)).thenAnswer(_ -> {
             assertThat(snapshots.getState().phase()).isEqualTo(SynchronizationPhase.IN_PROGRESS);
             throw new CatalogDiscontinuityException(CatalogRecoveryReason.CHANGE_MISSING);
         });
-        var useCase = new UpdateCatalogUseCaseImpl(changes, updates, recovery, access,
-                clock, Duration.ZERO, lock);
+        var useCase = new UpdateCatalogUseCaseImpl(changes, updates, recovery, access, clock, 3, Duration.ZERO, Duration.ofSeconds(30), lock);
 
         assertThat(useCase.process(notice("recovered-event", 10)).recorded()).isTrue();
         assertThat(snapshots.getState().appliedVersion()).isEqualTo(12);

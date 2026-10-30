@@ -20,20 +20,24 @@ public class UpdateCatalogUseCaseImpl implements UpdateCatalogUseCase {
     private final RecoverCatalogUseCase recovery;
     private final TechnicalAccessGateway access;
     private final Clock clock;
+    private final int maxAttempts;
     private final Duration retryDelay;
+    private final Duration retryCooldown;
     private final CatalogSynchronizationGuard lock;
     private Instant nextAttempt;
     private CatalogUpdateResult stopped;
 
     public UpdateCatalogUseCaseImpl(CatalogChangesGateway changes, CatalogUpdateRepository repository,
             RecoverCatalogUseCase recovery, TechnicalAccessGateway access,
-            Clock clock, Duration retryDelay, CatalogSynchronizationGuard lock) {
+            Clock clock, int maxAttempts, Duration retryDelay, Duration retryCooldown, CatalogSynchronizationGuard lock) {
         this.changes = changes;
         this.repository = repository;
         this.recovery = recovery;
         this.access = access;
         this.clock = clock;
+        this.maxAttempts = maxAttempts;
         this.retryDelay = retryDelay;
+        this.retryCooldown = retryCooldown;
         this.lock = lock;
     }
 
@@ -55,7 +59,7 @@ public class UpdateCatalogUseCaseImpl implements UpdateCatalogUseCase {
             if (!repository.isRejected(rejection)) { repository.recordRejection(rejection); }
             return recorded("CATALOG_RECORD_REJECTED");
         } catch (CatalogSnapshotException failure) {
-            return failed(failure, Duration.ofSeconds(30));
+            return failed(failure, retryCooldown);
         } finally { lock.endSynchronization(); }
     }
 
@@ -78,14 +82,14 @@ public class UpdateCatalogUseCaseImpl implements UpdateCatalogUseCase {
             if (nextAttempt != null && clock.instant().isBefore(nextAttempt)) { return waiting("CATALOG_RETRY_WAIT", nextAttempt); }
             return run(new UpdateCycle(notification));
         } catch (CatalogSnapshotException failure) {
-            return failed(failure, Duration.ofSeconds(30));
+            return failed(failure, retryCooldown);
         } finally { lock.endSynchronization(); }
     }
 
     private CatalogUpdateResult run(UpdateCycle cycle) {
         lock.requireVerification();
         repository.report(SynchronizationPhase.IN_PROGRESS, "CATALOG_UPDATE_IN_PROGRESS");
-        for (int attempt = 1; attempt <= 3 && !Thread.currentThread().isInterrupted(); attempt++) {
+        for (int attempt = 1; attempt <= maxAttempts && !Thread.currentThread().isInterrupted(); attempt++) {
             try {
                 return applyAttempt(cycle);
             } catch (CatalogDiscontinuityException failure) {
@@ -103,7 +107,7 @@ public class UpdateCatalogUseCaseImpl implements UpdateCatalogUseCase {
     private boolean canRetry(UpdateCycle cycle, CatalogSnapshotException failure, int attempt) {
         if (cycle.writing && failure.kind() == SnapshotFailureKind.UNCERTAIN) { cycle.uncertain = true; }
         cycle.failure = failure;
-        return attempt < 3 && pause();
+        return attempt < maxAttempts && pause();
     }
 
     /** La consulta fresca precede a cualquier repetición de una escritura incierta. */
@@ -141,12 +145,12 @@ public class UpdateCatalogUseCaseImpl implements UpdateCatalogUseCase {
 
     private CatalogUpdateResult finish(UpdateCycle cycle) {
         return failed(cycle.uncertain ? new CatalogSnapshotException(SnapshotFailureKind.UNCERTAIN,
-                "CATALOG_COMMIT_UNVERIFIED") : cycle.failure, Duration.ofSeconds(30));
+                "CATALOG_COMMIT_UNVERIFIED") : cycle.failure, retryCooldown);
     }
 
     private CatalogUpdateResult confirmed(CatalogNotification notification, CatalogState state) {
         if (notification != null) {
-            if (state.appliedVersion() < notification.newVersion()) { return waiting("NOTIFICATION_NOT_COVERED", clock.instant().plusSeconds(5)); }
+            if (state.appliedVersion() < notification.newVersion()) { return waiting("NOTIFICATION_NOT_COVERED", clock.instant().plus(retryDelay)); }
             repository.recordCovered(notification);
         }
         return new CatalogUpdateResult(state.phase(), notification != null, null, "CATALOG_CHECKED", null);
@@ -184,7 +188,7 @@ public class UpdateCatalogUseCaseImpl implements UpdateCatalogUseCase {
         catch (InterruptedException _) { Thread.currentThread().interrupt(); return false; }
     }
 
-    private CatalogUpdateResult busy() { return waiting("CATALOG_BUSY", clock.instant().plusSeconds(5)); }
+    private CatalogUpdateResult busy() { return waiting("CATALOG_BUSY", clock.instant().plus(retryDelay)); }
     private static CatalogUpdateResult waiting(String code, Instant next) {
         return new CatalogUpdateResult(SynchronizationPhase.RECOVERY_WAITING, false, next, code, SnapshotFailureKind.TEMPORARY);
     }

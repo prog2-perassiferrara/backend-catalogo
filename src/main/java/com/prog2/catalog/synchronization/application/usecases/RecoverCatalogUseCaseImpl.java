@@ -19,18 +19,25 @@ public class RecoverCatalogUseCaseImpl implements RecoverCatalogUseCase {
     private final TechnicalAccessGateway access;
     private final Clock clock;
     private final CatalogSynchronizationGuard lock;
+    private final int maxCycles;
+    private final Duration cycleDelay;
+    private final Duration blockDelay;
     private CatalogRecoveryReason pending;
     private Instant nextAttempt;
     private int cycles;
     private SynchronizationResult stopped;
 
     public RecoverCatalogUseCaseImpl(SynchronizeCatalogUseCase snapshots, CatalogUpdateRepository repository,
-            TechnicalAccessGateway access, Clock clock, CatalogSynchronizationGuard lock) {
+            TechnicalAccessGateway access, Clock clock, int maxCycles, Duration cycleDelay,
+            Duration blockDelay, CatalogSynchronizationGuard lock) {
         this.snapshots = snapshots;
         this.repository = repository;
         this.access = access;
         this.clock = clock;
         this.lock = lock;
+        this.maxCycles = maxCycles;
+        this.cycleDelay = cycleDelay;
+        this.blockDelay = blockDelay;
     }
 
     @Override
@@ -56,7 +63,7 @@ public class RecoverCatalogUseCaseImpl implements RecoverCatalogUseCase {
         access.getToken();
         if (nextAttempt != null && clock.instant().isBefore(nextAttempt)) { return waiting(); }
         if (Thread.currentThread().isInterrupted()) { return busy(); }
-        if (cycles == 3) { cycles = 0; }
+        if (cycles == maxCycles) { cycles = 0; }
         SynchronizationResult result = snapshots.synchronize();
         if (result.phase() == SynchronizationPhase.BUSY) { return result; }
         if (result.phase() == SynchronizationPhase.SNAPSHOT_APPLIED) {
@@ -67,8 +74,8 @@ public class RecoverCatalogUseCaseImpl implements RecoverCatalogUseCase {
         }
         if (result.failureKind() == SnapshotFailureKind.TEMPORARY || result.failureKind() == SnapshotFailureKind.UNCERTAIN) {
             cycles++;
-            boolean exhausted = cycles == 3;
-            nextAttempt = clock.instant().plus(exhausted ? Duration.ofMinutes(5) : Duration.ofSeconds(30));
+            boolean exhausted = cycles == maxCycles;
+            nextAttempt = clock.instant().plus(exhausted ? blockDelay : cycleDelay);
             repository.report(SynchronizationPhase.RECOVERY_WAITING, "RECOVERY_" + pending.name());
             return waiting();
         }

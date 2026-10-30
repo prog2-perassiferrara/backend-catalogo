@@ -1,5 +1,6 @@
 package com.prog2.catalog.infrastructure.startup;
 
+import java.time.Duration;
 import java.util.concurrent.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,20 +19,22 @@ public class CatalogSynchronizationMonitor implements AutoCloseable {
     private final CatalogSnapshotRepository snapshots;
     private final UpdateCatalogUseCase updates;
     private final ScheduledExecutorService scheduler;
+    private final Duration interval;
     private Future<?> task;
     private boolean closed;
 
     public CatalogSynchronizationMonitor(CatalogRemoteClients clients, CatalogConnectionSettingsGateway settings,
-            CatalogSnapshotRepository snapshots, UpdateCatalogUseCase updates, ScheduledExecutorService scheduler) {
+            CatalogSnapshotRepository snapshots, UpdateCatalogUseCase updates, ScheduledExecutorService scheduler, Duration interval) {
         this.clients = clients;
         this.settings = settings;
         this.snapshots = snapshots;
         this.updates = updates;
         this.scheduler = scheduler;
+        this.interval = interval;
     }
 
     public synchronized void start() {
-        if (!closed && task == null) { task = scheduler.scheduleWithFixedDelay(this::check, 0, 30, TimeUnit.SECONDS); }
+        if (!closed && task == null) { task = scheduler.scheduleWithFixedDelay(this::check, 0, interval.toMillis(), TimeUnit.MILLISECONDS); }
     }
 
     /** Atrapa fallos en la frontera del scheduler para no cancelar silenciosamente las ejecuciones posteriores. */

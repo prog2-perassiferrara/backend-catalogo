@@ -25,6 +25,9 @@ public class CatalogRemoteClients implements AutoCloseable {
     private static final Logger LOGGER = LoggerFactory.getLogger(CatalogRemoteClients.class);
     private final JsonMapper json;
     private final Clock clock;
+    private final Duration redisConnectTimeout;
+    private final Duration redisCommandTimeout;
+    private final Duration kafkaTimeout;
     private StringRedisTemplate redis;
     private String namespace;
     private LettuceConnectionFactory redisFactory;
@@ -32,7 +35,14 @@ public class CatalogRemoteClients implements AutoCloseable {
     private boolean stopped;
     private boolean closed;
 
-    public CatalogRemoteClients(JsonMapper json, Clock clock) { this.json = json; this.clock = clock; }
+    public CatalogRemoteClients(JsonMapper json, Clock clock, Duration redisConnectTimeout,
+            Duration redisCommandTimeout, Duration kafkaTimeout) {
+        this.json = json;
+        this.clock = clock;
+        this.redisConnectTimeout = redisConnectTimeout;
+        this.redisCommandTimeout = redisCommandTimeout;
+        this.kafkaTimeout = kafkaTimeout;
+    }
 
     /** Se llama después del acceso técnico y con copia confirmada, nunca durante construcción de beans. */
     public synchronized void start(CatalogConnectionSettings settings, UpdateCatalogUseCase updates) {
@@ -42,8 +52,8 @@ public class CatalogRemoteClients implements AutoCloseable {
             configuration.setUsername(settings.redisUsername());
             configuration.setPassword(settings.redisPassword());
             var options = ClientOptions.builder().socketOptions(SocketOptions.builder()
-                    .connectTimeout(Duration.ofSeconds(5)).build()).build();
-            var client = LettuceClientConfiguration.builder().commandTimeout(Duration.ofSeconds(5))
+                    .connectTimeout(redisConnectTimeout).build()).build();
+            var client = LettuceClientConfiguration.builder().commandTimeout(redisCommandTimeout)
                     .clientOptions(options).shutdownTimeout(Duration.ofSeconds(1)).build();
             redisFactory = new LettuceConnectionFactory(configuration, client);
             redisFactory.setEagerInitialization(false);
@@ -88,8 +98,8 @@ public class CatalogRemoteClients implements AutoCloseable {
         properties.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
         properties.put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, 1);
         properties.put(ConsumerConfig.MAX_POLL_INTERVAL_MS_CONFIG, 600000);
-        properties.put(ConsumerConfig.REQUEST_TIMEOUT_MS_CONFIG, 10000);
-        properties.put(ConsumerConfig.DEFAULT_API_TIMEOUT_MS_CONFIG, 10000);
+        properties.put(ConsumerConfig.REQUEST_TIMEOUT_MS_CONFIG, Math.toIntExact(kafkaTimeout.toMillis()));
+        properties.put(ConsumerConfig.DEFAULT_API_TIMEOUT_MS_CONFIG, Math.toIntExact(kafkaTimeout.toMillis()));
         properties.put(ConsumerConfig.RECONNECT_BACKOFF_MS_CONFIG, 1000);
         properties.put(ConsumerConfig.RECONNECT_BACKOFF_MAX_MS_CONFIG, 5000);
         properties.put(ConsumerConfig.ALLOW_AUTO_CREATE_TOPICS_CONFIG, false);
@@ -97,7 +107,7 @@ public class CatalogRemoteClients implements AutoCloseable {
         containerProperties.setAckMode(ContainerProperties.AckMode.MANUAL_IMMEDIATE);
         containerProperties.setAsyncAcks(false);
         containerProperties.setSyncCommits(true);
-        containerProperties.setSyncCommitTimeout(Duration.ofSeconds(10));
+        containerProperties.setSyncCommitTimeout(kafkaTimeout);
         containerProperties.setPollTimeout(1000);
         var container = new KafkaMessageListenerContainer<>(
                 new DefaultKafkaConsumerFactory<String, String>(properties), containerProperties);

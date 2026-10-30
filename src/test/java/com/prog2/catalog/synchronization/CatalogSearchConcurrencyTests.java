@@ -169,8 +169,7 @@ class CatalogSearchConcurrencyTests {
         var restarted = new SearchProfessionalsUseCaseImpl(repository, access, newGuard, new CatalogStatusPolicy(data.clock));
         assertThat(restarted.search(CatalogSearchFixtures.all(0, 20)).catalog().state()).isEqualTo(CatalogAvailability.STALE);
         var check = new UpdateCatalogUseCaseImpl(version -> new CatalogChangesBatch(version,
-                new CatalogPublication(version, 1, data.clock.instant()), List.of(), List.of(), List.of()),
-                data.updates, recovery(), access, data.clock, Duration.ZERO, newGuard);
+                new CatalogPublication(version, 1, data.clock.instant()), List.of(), List.of(), List.of()), data.updates, recovery(), access, data.clock, 3, Duration.ZERO, Duration.ofSeconds(30), newGuard);
         assertThat(check.check().phase()).isEqualTo(SynchronizationPhase.CURRENT);
         assertThat(restarted.search(CatalogSearchFixtures.all(0, 20)).catalog().state()).isEqualTo(CatalogAvailability.CURRENT);
     }
@@ -189,13 +188,11 @@ class CatalogSearchConcurrencyTests {
     private SynchronizationPhase write(String kind) {
         var copy = replacement();
         if ("snapshot".equals(kind)) {
-            return new SynchronizeCatalogUseCaseImpl(_ -> copy, data.snapshots, access, data.clock,
-                    Duration.ZERO, data.guard).synchronize().phase();
+            return new SynchronizeCatalogUseCaseImpl(_ -> copy, data.snapshots, access, data.clock, 3, Duration.ZERO, data.guard).synchronize().phase();
         }
         var changes = new CatalogChangesBatch(7, new CatalogPublication(8, 1, data.clock.instant()),
                 copy.professionalCategories(), copy.professionals(), copy.weeklySchedules());
-        return new UpdateCatalogUseCaseImpl(_ -> changes, data.updates, recovery(), access, data.clock,
-                Duration.ZERO, data.guard).check().phase();
+        return new UpdateCatalogUseCaseImpl(_ -> changes, data.updates, recovery(), access, data.clock, 3, Duration.ZERO, Duration.ofSeconds(30), data.guard).check().phase();
     }
 
     private static RecoverCatalogUseCase recovery() {

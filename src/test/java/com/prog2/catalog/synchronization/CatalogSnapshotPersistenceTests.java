@@ -249,7 +249,7 @@ class CatalogSnapshotPersistenceTests {
         when(gateway.fetch("fictional-access")).thenReturn(SnapshotFixtures.snapshot(7, 1));
         var access = mock(TechnicalAccessGateway.class);
         when(access.getToken()).thenReturn("fictional-access");
-        var cycle = new SynchronizeCatalogUseCaseImpl(gateway, uncertain, access, Clock.systemUTC(), Duration.ZERO, new com.prog2.catalog.synchronization.application.service.CatalogSynchronizationGuard());
+        var cycle = new SynchronizeCatalogUseCaseImpl(gateway, uncertain, access, Clock.systemUTC(), 3, Duration.ZERO, new com.prog2.catalog.synchronization.application.service.CatalogSynchronizationGuard());
 
         assertThat(cycle.synchronize().phase()).isEqualTo(SynchronizationPhase.SNAPSHOT_APPLIED);
         assertCopy(7, 1);
