@@ -21,9 +21,10 @@
   - **Referencias:** RF-04, RF-05; CA-02 a CA-06. **Dependencias:** T-03.
   - **Verificación:** `clean verify`, Javadoc, Sonar CLI/IDE según disponibilidad; Compose resuelto y evidencia breve por CA.
 - [x] **T-05 · Simplificar metadatos OpenAPI**
-  - **Alcance:** constante privada para `status` y anotaciones `@ApiResponse` repetibles en las seis operaciones.
+  - **Alcance:** constante privada para `status`, anotaciones `@ApiResponse` repetibles en las seis operaciones y mock `searchUseCase` distinguible de la ruta `SEARCH` en el test.
   - **Referencias:** RF-02; CA-01, CA-02. **Dependencias:** T-02, T-03.
   - **Verificación:** 54 pruebas focalizadas de OpenAPI y seguridad correctas; Sonar IDE sin hallazgos y escaneo de secretos correcto en los cuatro Java modificados (2026-10-30). Contrato y permisos conservados.
+    Tras renombrar el mock, las siete pruebas de `OpenApiHttpTests` pasan; Sonar IDE y escaneo de secretos del test correctos.
 
 ## Cierre
 
