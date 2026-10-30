@@ -22,6 +22,11 @@
   - **Referencias:** RF-01 a RF-05; CA-01 a CA-06. **Dependencias:** T-01 a T-03.
   - **Verificación:** `./mvnw -B -ntp clean verify`, Sonar CLI/IDE según disponibilidad, Javadoc y `git diff --check`.
 
+- [x] **T-05 · Ajustes de mantenibilidad** (aprobada, 2026-10-30)
+  - **Alcance:** trasladar grupos incremental/recuperación a records de aplicación, adaptar constructores y aislar la operación del test de excepción.
+  - **Referencias:** RF-01, RF-04; CA-01, CA-02, CA-03, CA-05. **Dependencias:** T-01 a T-04.
+  - **Verificación:** pruebas de configuración/ciclos, regresión y revisión local de los avisos de constructores/lambda.
+
 ## Cierre
 
 | CA | Estado | Evidencia |
@@ -35,8 +40,12 @@
 
 **Regresión:** `./mvnw -B -ntp clean verify`, **454 pruebas, 0 fallos/errores/omisiones, BUILD SUCCESS**, terminado el 2026-10-29 a las 23:24:45 -03:00. Son 48 pruebas nuevas respecto de las 406 anteriores. Foco de configuración/ciclos: 125 correctas. El primer recorrido completo detectó 8 fixtures que aún esperaban segundos; corregida su equivalencia a milisegundos, el foco de seguimiento/persistencia/consumidor pasó 21 pruebas y la regresión limpia final pasó completa. Log: `/tmp/catalog-operations-verify-final.log`.
 
-**Ensayo operativo:** cuatro casos correctos con MySQL propio y REST ficticio; con un intento se registra un login fallido, y con dos se registran dos logins y dos descargas fallidas de snapshot. Pausas configuradas de 40/60 ms respetadas y health UP. El JAR ensayado precede al build limpio final, sin cambios Java posteriores. Resultado: `/tmp/catalog-operations-runtime-result.json`. Se retiraron contenedores, redes, volumen, imagen y claves ficticias propios; no se usaron `.env` ni claves reales, ni servicios de cátedra. No acredita un incremento central ni reservas de Turnos.
+**Ensayo operativo del 2026-10-29, previo a T-05:** cuatro casos correctos con MySQL propio y REST ficticio; con un intento se registra un login fallido, y con dos se registran dos logins y dos descargas fallidas de snapshot. Pausas configuradas de 40/60 ms respetadas y health UP. El JAR ensayado precede al build limpio final de esa revisión. Resultado: `/tmp/catalog-operations-runtime-result.json`. Se retiraron contenedores, redes, volumen, imagen y claves ficticias propios; no se usaron `.env` ni claves reales, ni servicios de cátedra. No acredita un incremento central ni reservas de Turnos.
 
 **Calidad local:** Sonar for IDE, puentes 64120/64121, 26 Java sin hallazgos; CLI, escaneo de secretos de esos archivos correcto. Javadoc de 11 Java productivos, `-Xdoclint:all,-missing`, sin errores/avisos. Dominio, inyección por constructor, formato y ausencia de `@Data`/`@Autowired` revisados. Análisis remoto posterior no verificado.
 
-**Desviaciones del PLAN:** ninguna de alcance, contratos o solución técnica.
+**Feedback remoto de PR #24, `c5e0fa8`:** Actions correcto y Quality Gate aprobado, cobertura nueva 96,2 % y duplicación 0 %. Tres avisos de mantenibilidad motivan T-05: dos constructores extensos y la lambda del test. La confirmación remota del ajuste requiere un análisis posterior a su publicación.
+
+**Cierre T-05, 2026-10-30:** records trasladados sin duplicación a aplicación; constructores de 7/6 parámetros y entorno preparado fuera de la lambda. Foco de 60 pruebas correcto; `./mvnw -B -ntp clean verify`: **454 pruebas, 0 fallos/errores/omisiones, BUILD SUCCESS**, 07:46:30 -03:00. Log: `/tmp/catalog-pr24-fixes-verify.log`. IDE 64120 sin hallazgos en 12 Java, CLI secretos correcto y Javadoc de 4 productivos sin avisos. No se repitió el ensayo operativo: configuración externa y comportamiento no cambian.
+
+**Desviaciones del PLAN:** ninguna respecto del ajuste aprobado del 2026-10-30; alcance, valores y contratos conservados.

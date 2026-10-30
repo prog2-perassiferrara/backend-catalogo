@@ -53,18 +53,16 @@ public class SynchronizationConfiguration {
     RecoverCatalogUseCase recoverCatalogUseCase(SynchronizeCatalogUseCase snapshots, CatalogUpdateRepository repository,
             TechnicalAccessGateway access, Clock clock, CatalogSynchronizationGuard catalogSynchronizationLock,
             CatalogOperationalProperties operational) {
-        var settings = operational.recovery();
-        return new RecoverCatalogUseCaseImpl(snapshots, repository, access, clock, settings.maxCycles(),
-                settings.cycleDelay(), settings.blockDelay(), catalogSynchronizationLock);
+        return new RecoverCatalogUseCaseImpl(snapshots, repository, access, clock,
+                operational.recovery(), catalogSynchronizationLock);
     }
 
     @Bean
     UpdateCatalogUseCase updateCatalogUseCase(CatalogChangesGateway changes, CatalogUpdateRepository repository,
             RecoverCatalogUseCase recovery, TechnicalAccessGateway access,
             Clock clock, CatalogSynchronizationGuard catalogSynchronizationLock, CatalogOperationalProperties operational) {
-        var settings = operational.incremental();
         return new UpdateCatalogUseCaseImpl(changes, repository, recovery, access, clock,
-                settings.maxAttempts(), settings.retryDelay(), settings.retryCooldown(), catalogSynchronizationLock);
+                operational.incremental(), catalogSynchronizationLock);
     }
 
     @Bean(destroyMethod = "close")

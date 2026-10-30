@@ -1,5 +1,7 @@
 package com.prog2.catalog.synchronization;
 
+import com.prog2.catalog.synchronization.application.usecases.UpdateCatalogUseCaseImpl.IncrementalRetrySettings;
+
 import java.time.*;
 import java.util.*;
 import java.util.concurrent.*;
@@ -95,7 +97,7 @@ class CatalogNotificationConsumerTests {
     private UpdateCatalogUseCase useCase(CatalogUpdateRepository repository) {
         var recovery=mock(RecoverCatalogUseCase.class);
         when(recovery.resume()).thenReturn(Optional.empty());
-        return new UpdateCatalogUseCaseImpl(gateway, repository, recovery, mock(TechnicalAccessGateway.class), clock, 3, Duration.ZERO, Duration.ofSeconds(30), new CatalogSynchronizationGuard());
+        return new UpdateCatalogUseCaseImpl(gateway, repository, recovery, mock(TechnicalAccessGateway.class), clock, new IncrementalRetrySettings(3, Duration.ZERO, Duration.ofSeconds(30)), new CatalogSynchronizationGuard());
     }
     private void start(UpdateCatalogUseCase useCase) {
         remote=new CatalogRemoteClients(json, clock, Duration.ofSeconds(5), Duration.ofSeconds(5), Duration.ofSeconds(10));

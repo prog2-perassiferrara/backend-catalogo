@@ -1,5 +1,7 @@
 package com.prog2.catalog.synchronization;
 
+import com.prog2.catalog.synchronization.application.usecases.UpdateCatalogUseCaseImpl.IncrementalRetrySettings;
+
 import java.time.*;
 import java.util.*;
 import java.util.concurrent.*;
@@ -148,7 +150,7 @@ class CatalogCommitRecoveryTests {
     private UpdateCatalogUseCaseImpl updates(CatalogChangesGateway changes, Clock clock) {
         var recovery = mock(RecoverCatalogUseCase.class);
         when(recovery.resume()).thenReturn(Optional.empty());
-        return new UpdateCatalogUseCaseImpl(changes, updates, recovery, mock(TechnicalAccessGateway.class), clock, 3, Duration.ZERO, Duration.ofSeconds(30), new CatalogSynchronizationGuard());
+        return new UpdateCatalogUseCaseImpl(changes, updates, recovery, mock(TechnicalAccessGateway.class), clock, new IncrementalRetrySettings(3, Duration.ZERO, Duration.ofSeconds(30)), new CatalogSynchronizationGuard());
     }
 
     @Test

@@ -2,6 +2,9 @@ package com.prog2.catalog.infrastructure.config;
 
 import java.time.Duration;
 
+import com.prog2.catalog.synchronization.application.usecases.UpdateCatalogUseCaseImpl.IncrementalRetrySettings;
+import com.prog2.catalog.synchronization.application.usecases.RecoverCatalogUseCaseImpl.RecoverySettings;
+
 import org.springframework.beans.factory.BeanCreationException;
 import org.springframework.core.env.Environment;
 
@@ -11,18 +14,12 @@ import org.springframework.core.env.Environment;
  * reciben sus valores por constructor, sin depender de esta representación.
  */
 public record CatalogOperationalProperties(HttpCycle integration, HttpCycle snapshot,
-        Incremental incremental, Recovery recovery, Redis redis,
+        IncrementalRetrySettings incremental, RecoverySettings recovery, Redis redis,
         Duration kafkaTimeout, Duration monitorInterval) {
 
     /** Presupuesto de intentos y límites independientes de una solicitud HTTP. */
     public record HttpCycle(int maxAttempts, Duration retryDelay, Duration connectTimeout,
             Duration readTimeout, Duration requestTimeout) { }
-
-    /** Presupuesto del lote incremental y espera antes de habilitar otro ciclo. */
-    public record Incremental(int maxAttempts, Duration retryDelay, Duration retryCooldown) { }
-
-    /** Ciclos por bloque y esperas de recuperación sin reiniciar el proceso. */
-    public record Recovery(int maxCycles, Duration cycleDelay, Duration blockDelay) { }
 
     /** Límites de conexión, comando y lectura completa del lote Redis. */
     public record Redis(Duration connectTimeout, Duration commandTimeout, Duration readTimeout) { }
@@ -36,10 +33,10 @@ public record CatalogOperationalProperties(HttpCycle integration, HttpCycle snap
      */
     public static CatalogOperationalProperties from(Environment environment) {
         return new CatalogOperationalProperties(http(environment, "integration"), http(environment, "snapshot"),
-                new Incremental(positive(environment, "incremental.max-attempts"),
+                new IncrementalRetrySettings(positive(environment, "incremental.max-attempts"),
                         duration(environment, "incremental.retry-delay-ms"),
                         duration(environment, "incremental.retry-cooldown-ms")),
-                new Recovery(positive(environment, "recovery.max-cycles"),
+                new RecoverySettings(positive(environment, "recovery.max-cycles"),
                         duration(environment, "recovery.cycle-delay-ms"),
                         duration(environment, "recovery.block-delay-ms")),
                 new Redis(duration(environment, "redis.connect-timeout-ms"),

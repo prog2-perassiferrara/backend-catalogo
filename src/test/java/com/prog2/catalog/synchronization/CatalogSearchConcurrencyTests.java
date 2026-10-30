@@ -1,5 +1,7 @@
 package com.prog2.catalog.synchronization;
 
+import com.prog2.catalog.synchronization.application.usecases.UpdateCatalogUseCaseImpl.IncrementalRetrySettings;
+
 import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.*;
@@ -169,7 +171,7 @@ class CatalogSearchConcurrencyTests {
         var restarted = new SearchProfessionalsUseCaseImpl(repository, access, newGuard, new CatalogStatusPolicy(data.clock));
         assertThat(restarted.search(CatalogSearchFixtures.all(0, 20)).catalog().state()).isEqualTo(CatalogAvailability.STALE);
         var check = new UpdateCatalogUseCaseImpl(version -> new CatalogChangesBatch(version,
-                new CatalogPublication(version, 1, data.clock.instant()), List.of(), List.of(), List.of()), data.updates, recovery(), access, data.clock, 3, Duration.ZERO, Duration.ofSeconds(30), newGuard);
+                new CatalogPublication(version, 1, data.clock.instant()), List.of(), List.of(), List.of()), data.updates, recovery(), access, data.clock, new IncrementalRetrySettings(3, Duration.ZERO, Duration.ofSeconds(30)), newGuard);
         assertThat(check.check().phase()).isEqualTo(SynchronizationPhase.CURRENT);
         assertThat(restarted.search(CatalogSearchFixtures.all(0, 20)).catalog().state()).isEqualTo(CatalogAvailability.CURRENT);
     }
@@ -192,7 +194,7 @@ class CatalogSearchConcurrencyTests {
         }
         var changes = new CatalogChangesBatch(7, new CatalogPublication(8, 1, data.clock.instant()),
                 copy.professionalCategories(), copy.professionals(), copy.weeklySchedules());
-        return new UpdateCatalogUseCaseImpl(_ -> changes, data.updates, recovery(), access, data.clock, 3, Duration.ZERO, Duration.ofSeconds(30), data.guard).check().phase();
+        return new UpdateCatalogUseCaseImpl(_ -> changes, data.updates, recovery(), access, data.clock, new IncrementalRetrySettings(3, Duration.ZERO, Duration.ofSeconds(30)), data.guard).check().phase();
     }
 
     private static RecoverCatalogUseCase recovery() {

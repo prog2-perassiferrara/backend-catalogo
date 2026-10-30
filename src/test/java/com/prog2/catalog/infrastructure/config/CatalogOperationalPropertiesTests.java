@@ -97,8 +97,9 @@ class CatalogOperationalPropertiesTests {
 
     @Test
     void rejectsMissingDefaultsRatherThanConstructingAnUnlimitedOrPartialConfiguration() {
+        var environment = new MockEnvironment();
         assertThatExceptionOfType(BeanCreationException.class)
-                .isThrownBy(() -> CatalogOperationalProperties.from(new MockEnvironment()))
+                .isThrownBy(() -> CatalogOperationalProperties.from(environment))
                 .withMessageContaining(PREFIX + "integration.max-attempts");
     }
 

@@ -53,9 +53,16 @@ Usa un diagrama si aporta claridad. -->
 
 Crear `infrastructure/config/CatalogOperationalProperties.java`, con grupos
 inmutables pequeños. Usar `from(Environment)` y validación temprana en el
-postprocesador existente. El cableado `@Bean` entrega `int`/`Duration` por
-constructor; aplicación no depende de esa clase ni de Spring. Sin nuevos puertos
-o slices.
+postprocesador existente. El cableado `@Bean` entrega valores Java por
+constructor; aplicación no depende de esa clase ni de Spring. Los parámetros
+de incrementos y recuperación son records de sus respectivos casos de uso.
+Sin nuevos puertos o slices.
+
+**Ajuste aprobado, 2026-10-30:** trasladar los dos grupos existentes a records
+anidados de aplicación y recibirlos como objetos de parámetros. Reduce los
+constructores de 9 a 7 y de 8 a 6 argumentos, sin duplicar modelos o modificar
+valores/contratos. RF-01/04 y CA-01/02/05 conservan sus verificaciones; el test
+de configuración ausente prepara el entorno fuera de la lambda de excepción.
 
 ## Módulos y componentes afectados
 
