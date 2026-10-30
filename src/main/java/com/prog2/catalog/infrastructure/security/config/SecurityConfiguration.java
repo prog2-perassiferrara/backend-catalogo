@@ -67,25 +67,28 @@ public class SecurityConfiguration {
     }
 
     /**
-     * Habilita solo health anónimo; usuarios y servicio tienen perfiles separados.
+     * Conserva health anónimo y permite documentación GET únicamente cuando está habilitada.
      * CSRF se desactiva porque la API usa bearer explícito, sin cookies de autenticación.
      * CORS admite únicamente los orígenes configurados y no concede permisos de negocio.
      *
      * @param http constructor servlet proporcionado por Spring Security
      * @param properties orígenes admitidos
      * @param mapper serializador para errores producidos antes de MVC
+     * @param environment opción local de habilitación documental
      * @return cadena stateless con denegación por defecto
      */
     @Bean
     @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
     SecurityFilterChain securityFilterChain(HttpSecurity http, JwtSecurityProperties properties,
-            JsonMapper mapper) {
+            JsonMapper mapper, Environment environment) {
         SecurityProblemHandler problems = new SecurityProblemHandler(mapper);
         JwtGrantedAuthoritiesConverter authorities = new JwtGrantedAuthoritiesConverter();
         authorities.setAuthoritiesClaimName("auth");
         authorities.setAuthorityPrefix("");
         JwtAuthenticationConverter authentication = new JwtAuthenticationConverter();
         authentication.setJwtGrantedAuthoritiesConverter(authorities);
+
+        boolean documentationEnabled = environment.getProperty("catalog.api-docs.enabled", Boolean.class, false);
 
         return http
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
@@ -99,7 +102,12 @@ public class SecurityConfiguration {
                 .oauth2ResourceServer(resource -> resource
                         .jwt(jwt -> jwt.jwtAuthenticationConverter(authentication))
                         .authenticationEntryPoint(problems).accessDeniedHandler(problems))
-                .authorizeHttpRequests(routes -> routes
+                .authorizeHttpRequests(routes -> {
+                    if (documentationEnabled) {
+                        routes.requestMatchers(HttpMethod.GET, "/v3/api-docs", "/v3/api-docs.yaml",
+                                "/v3/api-docs/**", "/swagger-ui.html", "/swagger-ui/**").permitAll();
+                    }
+                    routes
                         // Permite el despacho interno de un error, no una llamada externa a /error.
                         .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
                         .requestMatchers(HttpMethod.GET, "/actuator/health").permitAll()
@@ -119,7 +127,8 @@ public class SecurityConfiguration {
                                     && "user".equals(jwt.getToken().getClaimAsString("token_use"))
                                     && jwt.getAuthorities().stream().anyMatch(
                                             role -> "ROLE_USER".equals(role.getAuthority()))))
-                        .anyRequest().denyAll())
+                        .anyRequest().denyAll();
+                })
                 .build();
     }
 

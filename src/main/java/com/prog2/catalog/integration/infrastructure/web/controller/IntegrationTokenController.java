@@ -1,5 +1,14 @@
 package com.prog2.catalog.integration.infrastructure.web.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import static com.prog2.catalog.infrastructure.config.OpenApiConfiguration.PROBLEM_SCHEMA;
+import static com.prog2.catalog.infrastructure.config.OpenApiConfiguration.UNAUTHORIZED_RESPONSE;
+import static com.prog2.catalog.infrastructure.config.OpenApiConfiguration.FORBIDDEN_RESPONSE;
+
 import java.net.URI;
 
 import org.springframework.http.HttpHeaders;
@@ -37,6 +46,15 @@ public class IntegrationTokenController {
      * @return 200 con el JWT central y prohibición de caché
      * @throws IntegrationUnavailableException si la sesión no es utilizable, traducida a 503
      */
+    @Operation(summary = "Obtener token técnico existente", description = "JWT de servicio Turnos con ROLE_CATALOG_INTEGRATION. Entrega la sesión técnica existente; no autentica ni renueva credenciales de cátedra.", tags = {"Integración interna"})
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Consulta exitosa.", useReturnTypeSchema = true),
+        @ApiResponse(responseCode = "401", ref = UNAUTHORIZED_RESPONSE),
+        @ApiResponse(responseCode = "403", ref = FORBIDDEN_RESPONSE),
+        @ApiResponse(responseCode = "503", description = "TECHNICAL_INTEGRATION_UNAVAILABLE",
+                content = @Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
+                        schema = @Schema(ref = PROBLEM_SCHEMA)))
+    })
     @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<TechnicalTokenResponse> getToken() {
         return noCache(HttpStatus.OK).body(new TechnicalTokenResponse(getTechnicalToken.getToken()));

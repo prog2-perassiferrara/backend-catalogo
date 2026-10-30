@@ -16,6 +16,7 @@
     <description>Backend de catálogo y sincronización</description>
     <properties>
         <java.version>25</java.version>
+        <springdoc.version>3.2.0</springdoc.version>
         <jacoco.version>0.8.15</jacoco.version>
         <sonar-maven-plugin.version>5.8.0.7211</sonar-maven-plugin.version>
         <!-- Identificadores públicos; SONAR_TOKEN se suministra solo por entorno. -->
@@ -27,6 +28,11 @@
         <sonar.qualitygate.wait>false</sonar.qualitygate.wait>
     </properties>
     <dependencies>
+        <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+            <version>${springdoc.version}</version>
+        </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-webmvc</artifactId>
