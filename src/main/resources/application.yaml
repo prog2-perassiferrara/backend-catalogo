@@ -34,6 +34,8 @@ spring:
     connect-retries: 0
 
 catalog:
+  api-docs:
+    enabled: ${API_DOCS_ENABLED:false}
   operational:
     integration:
       max-attempts: ${CATALOG_INTEGRATION_MAX_ATTEMPTS:3}
@@ -63,6 +65,17 @@ catalog:
       timeout-ms: ${CATALOG_KAFKA_TIMEOUT_MS:10000}
     monitor:
       interval-ms: ${CATALOG_MONITOR_INTERVAL_MS:30000}
+
+springdoc:
+  api-docs:
+    enabled: ${catalog.api-docs.enabled}
+  swagger-ui:
+    enabled: ${catalog.api-docs.enabled}
+    persist-authorization: false
+    disable-swagger-default-url: true
+  paths-to-match: /api/**
+  show-actuator: false
+  override-with-generic-response: false
 
 server:
   port: ${APP_PORT:8080}

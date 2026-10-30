@@ -101,6 +101,65 @@ CATALOG_SNAPSHOT_REQUEST_TIMEOUT_MS=30000 java -jar target/catalog-0.0.1-SNAPSHO
 
 No hay recarga dinámica: cada proceso conserva los valores leídos al arrancar.
 
+## OpenAPI y Swagger UI
+
+Deshabilitados por defecto. Para habilitarlos, definir `API_DOCS_ENABLED=true`
+en `.env` con Compose, o en el entorno del proceso/IDE. Con la configuración local
+y la red externa preparadas según [ejecución con Compose](#ejecutar-todo-con-compose),
+ejecutar desde la raíz de este repositorio:
+
+```bash
+docker compose up --build -d
+docker compose ps
+```
+
+Esto construye la imagen actual, inicia MySQL y espera su healthcheck antes de
+arrancar Catálogo. Para consultar los logs, usar `docker compose logs catalog`.
+
+Con el puerto predeterminado:
+
+- Swagger UI: <http://localhost:8080/swagger-ui.html>.
+- Contrato JSON: <http://localhost:8080/v3/api-docs>.
+- Contrato YAML: <http://localhost:8080/v3/api-docs.yaml>.
+
+Cuando están habilitados, estas páginas y recursos se consultan sin JWT; las
+APIs conservan su autenticación. En **Authorize**, pegar el JWT propio de Turnos
+sin el prefijo `Bearer`. Para ejecutar una consulta, abrir la operación y usar
+**Try it out** y **Execute**. Son solicitudes reales al backend, que consulta su
+estado o sus datos según la operación, con los permisos y errores habituales.
+
+Las operaciones de **Catálogo** requieren JWT de usuario con `ROLE_USER`.
+Las de **Integración interna** requieren la identidad de servicio Turnos y
+`ROLE_CATALOG_INTEGRATION`. Cambiar el bearer según el perfil: un usuario no
+obtiene acceso interno por usar Swagger. El JWT técnico central no autentica
+estas APIs y no se emiten tokens desde esta documentación.
+
+Para probar con un usuario, levantar también Turnos según su README. Por defecto
+atiende en `http://localhost:8081`; utilizar su puerto configurado si es distinto.
+Registrar una cuenta ficticia mediante `POST /api/register`, por ejemplo:
+
+```json
+{"login":"swagger-demo","password":"Ficticia123!","firstName":"Swagger","lastName":"Demo","email":"swagger-demo@example.test"}
+```
+
+Si la cuenta ya existe, omitir el registro. Autenticarla en Turnos mediante
+`POST /api/authenticate`:
+
+```json
+{"username":"swagger-demo","password":"Ficticia123!","rememberMe":false}
+```
+
+Copiar el campo `id_token` de la respuesta a **Authorize** de Swagger en Catálogo.
+Probar `GET /api/catalog/synchronization`; un resultado 200 acredita el envío y
+la aceptación del bearer. Los endpoints internos deben rechazar ese usuario con
+403. Para ellos, Turnos firma su JWT de servicio automáticamente al consumir
+Catálogo; no existe un endpoint público que entregue esa credencial.
+
+El contrato contiene ejemplos ficticios y no incluye credenciales de ejecución.
+La UI no conserva la autorización al recargar. Consultar documentación no ejecuta
+negocio ni requiere que cátedra esté disponible si el backend ya está activo.
+Para deshabilitarla, quitar la variable o establecerla en `false` y reiniciar/recrear.
+
 ## Acceso técnico a cátedra
 
 Registrar la cuenta técnica una sola vez mediante Postman, según el anexo de
