@@ -1,5 +1,6 @@
 package com.prog2.catalog.synchronization.infrastructure.persistence.adapter;
 
+import lombok.RequiredArgsConstructor;
 import java.time.Instant;
 import java.util.UUID;
 import java.util.function.Supplier;
@@ -15,12 +16,10 @@ import com.prog2.catalog.synchronization.infrastructure.persistence.service.Tran
 
 /** Adapter del Repository. Traduce fallos del cuerpo y del commit sin exponer excepciones SQL. */
 @Component
+@RequiredArgsConstructor
 public class JpaCatalogSnapshotAdapter implements CatalogSnapshotRepository {
     private final TransactionalCatalogSnapshotWriter writer;
 
-    public JpaCatalogSnapshotAdapter(TransactionalCatalogSnapshotWriter writer) {
-        this.writer = writer;
-    }
 
     @Override
     public CatalogState getState() {

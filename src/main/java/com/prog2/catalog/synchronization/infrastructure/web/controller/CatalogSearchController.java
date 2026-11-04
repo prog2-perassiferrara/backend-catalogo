@@ -1,5 +1,6 @@
 package com.prog2.catalog.synchronization.infrastructure.web.controller;
 
+import lombok.RequiredArgsConstructor;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -19,17 +20,12 @@ import com.prog2.catalog.synchronization.infrastructure.web.mapper.CatalogSearch
 
 /** Adaptador HTTP de CU-04; la seguridad existente exige identidad de usuario con ROLE_USER. */
 @RestController
+@RequiredArgsConstructor
 public class CatalogSearchController {
     private final SearchProfessionalsUseCase search;
     private final GetProfessionalCategoriesUseCase categories;
     private final CatalogSearchDtoMapper mapper;
 
-    public CatalogSearchController(SearchProfessionalsUseCase search, GetProfessionalCategoriesUseCase categories,
-            CatalogSearchDtoMapper mapper) {
-        this.search = search;
-        this.categories = categories;
-        this.mapper = mapper;
-    }
 
     /** @return coincidencias paginadas, totales y estado del mismo recorrido de lectura */
     @Operation(summary = "Buscar profesionales", description = "JWT de usuario con ROLE_USER. Filtros opcionales combinados; disponibilidad significa agenda semanal habilitada, sin garantizar huecos libres.", tags = {"Catálogo"})

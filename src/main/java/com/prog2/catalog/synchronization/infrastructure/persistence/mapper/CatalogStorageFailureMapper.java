@@ -1,12 +1,11 @@
 package com.prog2.catalog.synchronization.infrastructure.persistence.mapper;
 
+import lombok.extern.slf4j.Slf4j;
 import java.sql.SQLException;
 import java.sql.SQLNonTransientConnectionException;
 import java.sql.SQLTransientConnectionException;
 import java.util.StringJoiner;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.dao.TransientDataAccessException;
@@ -16,8 +15,8 @@ import com.prog2.catalog.synchronization.domain.enums.SnapshotFailureKind;
 import com.prog2.catalog.synchronization.domain.exception.CatalogSnapshotException;
 
 /** Traduce fallos de persistencia sin perder la incertidumbre de un commit ni exponer mensajes JDBC. */
+@Slf4j
 public final class CatalogStorageFailureMapper {
-    private static final Logger LOGGER = LoggerFactory.getLogger(CatalogStorageFailureMapper.class);
     private CatalogStorageFailureMapper() { }
 
     /**
@@ -37,8 +36,8 @@ public final class CatalogStorageFailureMapper {
         if (failure instanceof TransientDataAccessException) {
             return new CatalogSnapshotException(SnapshotFailureKind.TEMPORARY, "LOCAL_STORAGE_TEMPORARY");
         }
-        if (LOGGER.isWarnEnabled()) {
-            LOGGER.warn("Unclassified catalog storage failure types: {}", failureTypes(failure));
+        if (log.isWarnEnabled()) {
+            log.warn("Unclassified catalog storage failure types: {}", failureTypes(failure));
         }
         return new CatalogSnapshotException(SnapshotFailureKind.TERMINAL, "LOCAL_STORAGE_FAILURE");
     }
