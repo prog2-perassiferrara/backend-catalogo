@@ -31,6 +31,7 @@ import static org.mockito.Mockito.*;
 @Timeout(40)
 class CatalogUpdatePersistenceTests {
     @Container static final MySQLContainer MYSQL = new MySQLContainer("mysql:8.4.8")
+            .withTmpFs(Map.of("/var/lib/mysql", "rw"))
             .withDatabaseName("updates_test").withUsername("updates_test").withPassword("fictional-update-password")
             .withCommand("--log-bin-trust-function-creators=1");
     @DynamicPropertySource static void settings(DynamicPropertyRegistry registry) {

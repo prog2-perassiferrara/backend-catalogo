@@ -28,6 +28,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @Timeout(30)
 class CatalogSearchPersistenceTests {
     @Container static final MySQLContainer MYSQL = new MySQLContainer("mysql:8.4.8")
+            .withTmpFs(Map.of("/var/lib/mysql", "rw"))
             .withDatabaseName("search_persistence").withUsername("search_test").withPassword("fictional-search-password");
     @DynamicPropertySource static void properties(DynamicPropertyRegistry registry) {
         registry.add("DB_HOST", MYSQL::getHost); registry.add("DB_PORT", MYSQL::getFirstMappedPort);

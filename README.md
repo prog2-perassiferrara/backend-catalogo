@@ -534,8 +534,12 @@ o no puede conectar a la base. El diagnóstico identifica el problema sin mostra
 
 Compila, ejecuta las pruebas y empaqueta el JAR en `target/`. Las pruebas usan
 Testcontainers con MySQL 8.4.8, Redis 8.4.0 y Kafka 4.2.1 temporales: Docker debe estar accesible. No requieren
-`.env` ni reutilizan la base de desarrollo. Se comprueba migración Flyway, datos
-persistidos, health sin detalles y rechazo de arranque con configuración inválida
+`.env` ni reutilizan la base de desarrollo. Los datos del MySQL temporal se montan
+en `tmpfs` para aislar las pruebas de la latencia de escritura del disco anfitrión;
+el motor, los timeouts y las pruebas de transacciones permanecen sin cambios.
+Esto no afecta los volúmenes de Compose.
+Se comprueba migración Flyway, datos persistidos, health sin detalles y rechazo
+de arranque con configuración inválida
 o base inaccesible. La integración utiliza un servidor HTTP ficticio: comprueba
 login, estados de aprovisionamiento, errores, límites de reintento, interrupción
 y vencimiento del JWT, sin conectarse a cátedra real.

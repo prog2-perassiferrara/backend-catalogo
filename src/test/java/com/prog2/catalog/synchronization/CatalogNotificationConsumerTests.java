@@ -43,6 +43,7 @@ import static org.mockito.Mockito.*;
 @Timeout(60)
 class CatalogNotificationConsumerTests {
     @Container static final MySQLContainer MYSQL=new MySQLContainer("mysql:8.4.8")
+            .withTmpFs(Map.of("/var/lib/mysql", "rw"))
             .withDatabaseName("consumer_test").withUsername("consumer_test").withPassword("fictional-consumer-password");
     @Container static final GenericContainer<?> REDIS=new GenericContainer<>("redis:8.4.0-alpine")
             .withExposedPorts(6379).withCommand("redis-server","--requirepass",IncrementalFixtures.ACCESS);
