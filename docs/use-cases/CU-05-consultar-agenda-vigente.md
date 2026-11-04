@@ -46,6 +46,6 @@
 
 ## Fuentes y pendientes
 
-**Fuente:** [enunciado, secciones 4.1, 4.2, 7 y 8](../../../PROJECT_STATEMENT-v1.md).
+**Fuente:** enunciado, secciones 4.1, 4.2, 7 y 8 (documento externo de cátedra `PROJECT_STATEMENT-v1.md`).
 
 **Pendiente para el PLAN:** endpoints, campos, errores y mecanismo de JWT del contrato interno.

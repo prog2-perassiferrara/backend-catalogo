@@ -44,6 +44,6 @@
 
 ## Fuentes y pendientes
 
-**Fuentes:** [enunciado, sección 6.2](../../../PROJECT_STATEMENT-v1.md); [contrato, secciones 14.2 y 18.2](../../../INTEGRATION_REFERENCE-v2.md).
+**Fuentes:** enunciado, sección 6.2 (documento externo de cátedra `PROJECT_STATEMENT-v1.md`); contrato, secciones 14.2 y 18.2 (documento externo de cátedra `INTEGRATION_REFERENCE-v2.md`).
 
 **Pendiente para el PLAN:** coordinación entre reconstrucción y actualización incremental, y diagnóstico de la causa de recuperación.

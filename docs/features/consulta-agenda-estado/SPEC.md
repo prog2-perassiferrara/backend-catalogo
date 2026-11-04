@@ -43,9 +43,9 @@ Agrupa [#11](https://github.com/prog2-perassiferrara/backend-catalogo/issues/11)
 [#12](https://github.com/prog2-perassiferrara/backend-catalogo/issues/12), manteniendo
 [CU-05](../../use-cases/CU-05-consultar-agenda-vigente.md) y
 [CU-06](../../use-cases/CU-06-estado-de-sincronizacion.md) diferenciados.
-Fuentes: [enunciado, 4.1, 4.2, 7, 8 y 9](../../../../PROJECT_STATEMENT-v1.md) y
-[anexo, 4, 7 y 13](../../../../INTEGRATION_REFERENCE-v2.md).
-Consumidor relacionado: [Turnos, CU-03](../../../../backend-turnos/docs/use-cases/CU-03-consultar-disponibilidad.md).
+Fuentes: enunciado, 4.1, 4.2, 7, 8 y 9 (documento externo de cátedra `PROJECT_STATEMENT-v1.md`) y
+anexo, 4, 7 y 13 (documento externo de cátedra `INTEGRATION_REFERENCE-v2.md`).
+Consumidor relacionado: Turnos, CU-03 (repositorio independiente `backend-turnos`, `docs/use-cases/CU-03-consultar-disponibilidad.md`).
 
 ## Situación actual
 

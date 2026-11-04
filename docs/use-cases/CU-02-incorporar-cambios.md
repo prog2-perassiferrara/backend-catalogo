@@ -51,6 +51,6 @@
 
 ## Fuentes y pendientes
 
-**Fuentes:** [enunciado, sección 6.2](../../../PROJECT_STATEMENT-v1.md); [contrato, secciones 14.2 a 14.5, 15.3 y 16](../../../INTEGRATION_REFERENCE-v2.md).
+**Fuentes:** enunciado, sección 6.2 (documento externo de cátedra `PROJECT_STATEMENT-v1.md`); contrato, secciones 14.2 a 14.5, 15.3 y 16 (documento externo de cátedra `INTEGRATION_REFERENCE-v2.md`).
 
 **Pendiente para el PLAN:** comprobación ante notificaciones perdidas, deduplicación y coherencia de versiones cuando las entidades Redis cambian durante la lectura.

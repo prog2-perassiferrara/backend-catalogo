@@ -48,6 +48,6 @@
 
 ## Fuentes y pendientes
 
-**Fuente:** [enunciado, secciones 4.1 y 6](../../../PROJECT_STATEMENT-v1.md).
+**Fuente:** enunciado, secciones 4.1 y 6 (documento externo de cátedra `PROJECT_STATEMENT-v1.md`).
 
 **Pendiente funcional:** ninguno registrado en esta revisión.

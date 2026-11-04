@@ -36,8 +36,8 @@ Describe el objetivo en lenguaje de producto. -->
 
 Permitir ajustar tiempos y presupuestos operativos sin recompilar Catálogo.
 [Issue #22](https://github.com/prog2-perassiferrara/backend-catalogo/issues/22);
-fuentes: [enunciado](../../../../PROJECT_STATEMENT-v1.md) y
-[anexo](../../../../INTEGRATION_REFERENCE-v2.md).
+fuentes: enunciado (documento externo de cátedra `PROJECT_STATEMENT-v1.md`) y
+anexo (documento externo de cátedra `INTEGRATION_REFERENCE-v2.md`).
 
 ## Situación actual
 

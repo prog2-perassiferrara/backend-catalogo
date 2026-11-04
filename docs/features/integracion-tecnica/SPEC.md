@@ -32,7 +32,7 @@ Describe el objetivo en lenguaje de producto. -->
 Permitir que Catálogo acceda a la integración técnica asignada por cátedra, con una cuenta ya registrada manualmente. El destinatario es el servicio de Catálogo y quien configura su ejecución; no el usuario final de KMP.
 
 Issue: [#6](https://github.com/prog2-perassiferrara/backend-catalogo/issues/6).
-Fuentes: [enunciado](../../../../PROJECT_STATEMENT-v1.md), secciones 5 y 9; [contrato](../../../../INTEGRATION_REFERENCE-v2.md), secciones 2 a 5 y 13.
+Fuentes: enunciado (documento externo de cátedra `PROJECT_STATEMENT-v1.md`), secciones 5 y 9; contrato (documento externo de cátedra `INTEGRATION_REFERENCE-v2.md`), secciones 2 a 5 y 13.
 
 ## Situación actual
 

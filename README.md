@@ -16,6 +16,9 @@ Descarga un snapshot en cada arranque y mantiene la copia local mediante Kafka,
 Redis y comprobaciones periódicas; recupera discontinuidades con otro snapshot.
 Expone profesional/agendas vigentes a Turnos y estado funcional diferenciado para Turnos y KMP.
 
+Documentación de entrega: [arquitectura y modelo de datos](docs/ARQUITECTURA.md)
+y [contratos HTTP e integraciones](docs/CONTRATOS.md).
+
 ## Requisitos
 
 - Docker Engine disponible y Docker Compose.

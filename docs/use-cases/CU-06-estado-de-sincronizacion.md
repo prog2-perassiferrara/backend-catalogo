@@ -43,6 +43,6 @@
 
 ## Fuentes y pendientes
 
-**Fuente:** [enunciado, secciones 4.1, 8 y 9](../../../PROJECT_STATEMENT-v1.md).
+**Fuente:** enunciado, secciones 4.1, 8 y 9 (documento externo de cátedra `PROJECT_STATEMENT-v1.md`).
 
 **Pendiente para el PLAN:** transporte del estado, valores concretos e información de errores conservada para diagnóstico.

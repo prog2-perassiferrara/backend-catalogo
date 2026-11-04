@@ -42,8 +42,8 @@ cada búsqueda.
 
 Corresponde al issue [#7](https://github.com/prog2-perassiferrara/backend-catalogo/issues/7)
 y a [CU-01](../../use-cases/CU-01-inicializar-o-reconstruir.md).
-Fuentes: [enunciado, secciones 4.1, 6.1 y 8](../../../../PROJECT_STATEMENT-v1.md),
-[contrato, secciones 4, 7 y 13](../../../../INTEGRATION_REFERENCE-v2.md).
+Fuentes: enunciado, secciones 4.1, 6.1 y 8 (documento externo de cátedra `PROJECT_STATEMENT-v1.md`),
+contrato, secciones 4, 7 y 13 (documento externo de cátedra `INTEGRATION_REFERENCE-v2.md`).
 
 ## Situación actual
 

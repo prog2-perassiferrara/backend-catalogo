@@ -26,8 +26,8 @@ Describe el objetivo en lenguaje de producto. -->
 Proteger las APIs de Catálogo consumidas por KMP y Turnos, diferenciando usuarios finales e identidad de servicio. Incorporar la entrega autorizada del JWT técnico de cátedra a Turnos para desbloquear su integración, sin exponerlo a KMP.
 
 Issue: [#13](https://github.com/prog2-perassiferrara/backend-catalogo/issues/13).
-Fuentes: [enunciado](../../../../PROJECT_STATEMENT-v1.md), secciones 3.2, 9 y 10; [anexo](../../../../INTEGRATION_REFERENCE-v2.md), secciones 2 y 4.
-Relacionados: [Catálogo #6](../integracion-tecnica/SPEC.md), [propuesta de contrato interno](../integracion-tecnica/PLAN.md), [Turnos #4](../../../../backend-turnos/docs/features/integracion-tecnica/SPEC.md) y [Turnos #7](https://github.com/prog2-perassiferrara/backend-turnos/issues/7).
+Fuentes: enunciado (documento externo de cátedra `PROJECT_STATEMENT-v1.md`), secciones 3.2, 9 y 10; anexo (documento externo de cátedra `INTEGRATION_REFERENCE-v2.md`), secciones 2 y 4.
+Relacionados: [Catálogo #6](../integracion-tecnica/SPEC.md), [propuesta de contrato interno](../integracion-tecnica/PLAN.md), Turnos #4 (repositorio independiente `backend-turnos`, `docs/features/integracion-tecnica/SPEC.md`) y [Turnos #7](https://github.com/prog2-perassiferrara/backend-turnos/issues/7).
 
 ## Situación actual
 

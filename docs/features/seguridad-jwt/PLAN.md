@@ -36,7 +36,7 @@ La aprobación del PLAN no autoriza por sí sola a implementar.
 
 Rutas Java relativas a `src/main/java/com/prog2/catalog/`. El BOM local de Boot 4.1.1 gestiona Spring Security **7.1.1** y Framework **7.0.9**; declara los starters de seguridad/resource server y pruebas citados abajo.
 
-**Convenciones y patrón de referencia:** skill `hexagonal-arch` y ejemplo del profesor. El controlador y DTO pertenecen a `integration/infrastructure/web/` y consumen el puerto del mismo slice. Seguridad transversal en `infrastructure/security/`, según la aclaración de cátedra resumida en [SESSION_HANDOFF](../../../../SESSION_HANDOFF.md). Sin nuevo slice de negocio, dependencias entre dominios, fachada, entidades ni tablas.
+**Convenciones y patrón de referencia:** skill `hexagonal-arch` y ejemplo del profesor. El controlador y DTO pertenecen a `integration/infrastructure/web/` y consumen el puerto del mismo slice. Seguridad transversal en `infrastructure/security/`, según la aclaración de cátedra resumida en SESSION_HANDOFF (contexto externo `SESSION_HANDOFF.md`). Sin nuevo slice de negocio, dependencias entre dominios, fachada, entidades ni tablas.
 
 ## Solución propuesta
 
