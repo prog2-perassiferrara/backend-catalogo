@@ -2,6 +2,7 @@ package com.prog2.catalog.synchronization.application.usecases;
 
 import java.time.*;
 import java.util.UUID;
+import lombok.extern.slf4j.Slf4j;
 import com.prog2.catalog.synchronization.application.service.CatalogSynchronizationGuard;
 import com.prog2.catalog.synchronization.domain.enums.*;
 import com.prog2.catalog.synchronization.domain.exception.*;
@@ -14,6 +15,7 @@ import com.prog2.catalog.synchronization.domain.ports.out.*;
  * El estado privado del intento retiene candidato/runId para reconciliar una escritura incierta.
  * No mantiene transacciones abiertas durante Redis, pausas ni reconstrucción.
  */
+@Slf4j
 public class UpdateCatalogUseCaseImpl implements UpdateCatalogUseCase {
     /**
      * Parámetros inmutables del ciclo incremental, independientes de Spring y del entorno.
@@ -141,6 +143,9 @@ public class UpdateCatalogUseCaseImpl implements UpdateCatalogUseCase {
         } else {
             cycle.writing = true;
             state = repository.apply(cycle.runId, cycle.candidate, cycle.notification);
+            log.info("Catalog update applied: version {} -> {}, categories={}, professionals={}, schedules={}",
+                    cycle.candidate.baseVersion(), state.appliedVersion(), cycle.candidate.categories().size(),
+                    cycle.candidate.professionals().size(), cycle.candidate.schedules().size());
         }
         nextAttempt = null;
         lock.confirmVerification();
