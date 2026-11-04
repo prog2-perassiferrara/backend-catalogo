@@ -227,6 +227,10 @@ un lote 7 → 10. Las entidades son actuales, por lo que no se publican versione
 intermedias con datos que ya pertenecen a 10. Se vuelve a leer metadata antes de
 aceptar el lote, bajo el supuesto de publicación central coherente.
 
+Tras aplicar el lote con commit confirmado, `Catalog update applied` registra las
+versiones anterior/nueva y cantidades afectadas. `CURRENT (CATALOG_CHECKED)` también
+aparece en comprobaciones sin cambios; por sí solo no demuestra un incremento.
+
 Datos, versión, identificador de aplicación y recibo de evento se confirman en
 una transacción. El offset Kafka se confirma después. Una reentrega consulta el
 recibo persistido; un mensaje incompatible deja un rechazo por topic/partición/
