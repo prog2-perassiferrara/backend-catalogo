@@ -1,5 +1,6 @@
 package com.prog2.catalog.synchronization.infrastructure.web.controller;
 
+import lombok.RequiredArgsConstructor;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -17,17 +18,12 @@ import com.prog2.catalog.synchronization.infrastructure.web.mapper.CatalogQueryD
 
 /** Adaptador HTTP de CU-05/CU-06; filtros previos separan identidades y permisos de cada ruta. */
 @RestController
+@RequiredArgsConstructor
 public class CatalogQueryController {
     private final GetProfessionalAgendaUseCase agendas;
     private final GetCatalogStatusUseCase statuses;
     private final CatalogQueryDtoMapper mapper;
 
-    public CatalogQueryController(GetProfessionalAgendaUseCase agendas, GetCatalogStatusUseCase statuses,
-            CatalogQueryDtoMapper mapper) {
-        this.agendas = agendas;
-        this.statuses = statuses;
-        this.mapper = mapper;
-    }
 
     /** @return profesional y todos sus horarios, únicamente con vigencia acreditada en esta lectura */
     @Operation(summary = "Consultar profesional y agenda vigentes", description = "JWT de servicio Turnos con ROLE_CATALOG_INTEGRATION. Requiere catálogo vigente; devuelve todos los horarios semanales, sin ocupaciones ni slots libres.", tags = {"Integración interna"})

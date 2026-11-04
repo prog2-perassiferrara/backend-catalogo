@@ -40,8 +40,8 @@ Consultar también las categorías locales para presentar el filtro.
 
 Corresponde al [issue #10](https://github.com/prog2-perassiferrara/backend-catalogo/issues/10)
 y [CU-04](../../use-cases/CU-04-buscar-profesionales.md). Fuentes:
-[enunciado, 4.1, 6, 7 y 11](../../../../PROJECT_STATEMENT-v1.md) y
-[anexo, 4 y 7](../../../../INTEGRATION_REFERENCE-v2.md).
+enunciado, 4.1, 6, 7 y 11 (documento externo de cátedra `PROJECT_STATEMENT-v1.md`) y
+anexo, 4 y 7 (documento externo de cátedra `INTEGRATION_REFERENCE-v2.md`).
 
 ## Situación actual
 

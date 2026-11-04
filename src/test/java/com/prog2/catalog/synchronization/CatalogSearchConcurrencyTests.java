@@ -43,6 +43,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Timeout(30)
 class CatalogSearchConcurrencyTests {
     @Container static final MySQLContainer MYSQL = new MySQLContainer("mysql:8.4.8")
+            .withTmpFs(Map.of("/var/lib/mysql", "rw"))
             .withDatabaseName("search_concurrency").withUsername("search_test").withPassword("fictional-search-password");
     @DynamicPropertySource static void properties(DynamicPropertyRegistry registry) {
         registry.add("DB_HOST", MYSQL::getHost); registry.add("DB_PORT", MYSQL::getFirstMappedPort);

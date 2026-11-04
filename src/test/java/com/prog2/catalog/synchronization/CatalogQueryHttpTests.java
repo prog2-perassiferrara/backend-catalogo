@@ -33,6 +33,7 @@ class CatalogQueryHttpTests {
     private static final String SERVICE_STATUS = "/api/internal/catalog/synchronization";
     private static final String USER_STATUS = "/api/catalog/synchronization";
     @Container static final MySQLContainer MYSQL = new MySQLContainer("mysql:8.4.8")
+            .withTmpFs(Map.of("/var/lib/mysql", "rw"))
             .withDatabaseName("query_http").withUsername("query_test").withPassword("fictional-query-password");
     @DynamicPropertySource static void properties(DynamicPropertyRegistry registry) {
         registry.add("DB_HOST", MYSQL::getHost); registry.add("DB_PORT", MYSQL::getFirstMappedPort);

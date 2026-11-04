@@ -1,5 +1,6 @@
 package com.prog2.catalog.synchronization.infrastructure.persistence.entity;
 
+import lombok.Getter;
 import java.time.Instant;
 
 import jakarta.persistence.Column;
@@ -13,24 +14,30 @@ import jakarta.persistence.Table;
 public class ProfessionalEntity {
     @Id
     @Column(name = "id", nullable = false)
+    @Getter
     private Long id;
 
     @Column(name = "category_id", nullable = false)
+    @Getter
     private long categoryId;
 
     @Column(name = "first_name", nullable = false, columnDefinition = "longtext")
+    @Getter
     private String firstName;
 
     @Column(name = "last_name", nullable = false, columnDefinition = "longtext")
+    @Getter
     private String lastName;
 
     @Column(name = "enabled", nullable = false)
     private boolean enabled;
 
     @Column(name = "created_at", nullable = false)
+    @Getter
     private Instant createdAt;
 
     @Column(name = "updated_at", nullable = false)
+    @Getter
     private Instant updatedAt;
 
     protected ProfessionalEntity() { }
@@ -45,31 +52,8 @@ public class ProfessionalEntity {
         this.updatedAt = updatedAt;
     }
 
-    public Long getId() {
-        return id;
-    }
-
-    public long getCategoryId() {
-        return categoryId;
-    }
-
-    public String getFirstName() {
-        return firstName;
-    }
-
-    public String getLastName() {
-        return lastName;
-    }
-
     public boolean getEnabled() {
         return enabled;
     }
 
-    public Instant getCreatedAt() {
-        return createdAt;
-    }
-
-    public Instant getUpdatedAt() {
-        return updatedAt;
-    }
 }

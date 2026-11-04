@@ -33,6 +33,7 @@ class CatalogSearchHttpTests {
     private static final String SEARCH = "/api/catalog/professionals";
     private static final String CATEGORIES = "/api/catalog/categories";
     @Container static final MySQLContainer MYSQL = new MySQLContainer("mysql:8.4.8")
+            .withTmpFs(Map.of("/var/lib/mysql", "rw"))
             .withDatabaseName("search_http").withUsername("search_test").withPassword("fictional-search-password");
     @DynamicPropertySource static void properties(DynamicPropertyRegistry registry) {
         registry.add("DB_HOST", MYSQL::getHost); registry.add("DB_PORT", MYSQL::getFirstMappedPort);

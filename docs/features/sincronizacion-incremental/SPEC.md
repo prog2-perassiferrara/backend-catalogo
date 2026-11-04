@@ -31,8 +31,8 @@ Agrupa los issues [#8](https://github.com/prog2-perassiferrara/backend-catalogo/
 y [#9](https://github.com/prog2-perassiferrara/backend-catalogo/issues/9), conservando
 [CU-02](../../use-cases/CU-02-incorporar-cambios.md) y
 [CU-03](../../use-cases/CU-03-resolver-discontinuidad.md) separados.
-Fuentes: [enunciado, 6.2 y 8](../../../../PROJECT_STATEMENT-v1.md) y
-[contrato, 14, 15.1 a 15.3, 16 y 18](../../../../INTEGRATION_REFERENCE-v2.md).
+Fuentes: enunciado, 6.2 y 8 (documento externo de cátedra `PROJECT_STATEMENT-v1.md`) y
+contrato, 14, 15.1 a 15.3, 16 y 18 (documento externo de cátedra `INTEGRATION_REFERENCE-v2.md`).
 
 ## Situación actual
 

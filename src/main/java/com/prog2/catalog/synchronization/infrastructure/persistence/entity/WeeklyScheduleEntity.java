@@ -1,5 +1,6 @@
 package com.prog2.catalog.synchronization.infrastructure.persistence.entity;
 
+import lombok.Getter;
 import java.time.Instant;
 import java.time.DayOfWeek;
 import java.time.LocalTime;
@@ -19,31 +20,39 @@ import com.prog2.catalog.synchronization.domain.model.WeeklySchedule;
 public class WeeklyScheduleEntity {
     @Id
     @Column(name = "id", nullable = false)
+    @Getter
     private Long id;
 
     @Column(name = "professional_id", nullable = false)
+    @Getter
     private long professionalId;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "day_of_week", nullable = false)
+    @Getter
     private DayOfWeek dayOfWeek;
 
     @Column(name = "start_time", nullable = false)
+    @Getter
     private LocalTime startTime;
 
     @Column(name = "end_time", nullable = false)
+    @Getter
     private LocalTime endTime;
 
     @Column(name = "slot_duration_minutes", nullable = false)
+    @Getter
     private int slotDurationMinutes;
 
     @Column(name = "enabled", nullable = false)
     private boolean enabled;
 
     @Column(name = "created_at", nullable = false)
+    @Getter
     private Instant createdAt;
 
     @Column(name = "updated_at", nullable = false)
+    @Getter
     private Instant updatedAt;
 
     protected WeeklyScheduleEntity() { }
@@ -61,39 +70,8 @@ public class WeeklyScheduleEntity {
         this.updatedAt = schedule.updatedAt();
     }
 
-    public Long getId() {
-        return id;
-    }
-
-    public long getProfessionalId() {
-        return professionalId;
-    }
-
-    public DayOfWeek getDayOfWeek() {
-        return dayOfWeek;
-    }
-
-    public LocalTime getStartTime() {
-        return startTime;
-    }
-
-    public LocalTime getEndTime() {
-        return endTime;
-    }
-
-    public int getSlotDurationMinutes() {
-        return slotDurationMinutes;
-    }
-
     public boolean getEnabled() {
         return enabled;
     }
 
-    public Instant getCreatedAt() {
-        return createdAt;
-    }
-
-    public Instant getUpdatedAt() {
-        return updatedAt;
-    }
 }

@@ -4,6 +4,7 @@ import java.sql.Connection;
 import java.time.Clock;
 import java.time.Duration;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
@@ -57,6 +58,7 @@ import static org.mockito.Mockito.*;
 class CatalogSnapshotPersistenceTests {
     @Container
     static final MySQLContainer MYSQL = new MySQLContainer("mysql:8.4.8")
+            .withTmpFs(Map.of("/var/lib/mysql", "rw"))
             .withDatabaseName("snapshot_test").withUsername("snapshot_test")
             .withPassword("fictional-snapshot-password")
             .withCommand("--log-bin-trust-function-creators=1");

@@ -1,5 +1,7 @@
 package com.prog2.catalog.synchronization.application.usecases;
 
+import org.springframework.stereotype.Component;
+import lombok.RequiredArgsConstructor;
 import com.prog2.catalog.synchronization.application.exception.CatalogQueryException;
 import com.prog2.catalog.synchronization.application.service.CatalogStatusPolicy;
 import com.prog2.catalog.synchronization.application.service.CatalogSynchronizationGuard;
@@ -12,19 +14,14 @@ import com.prog2.catalog.synchronization.domain.ports.out.TechnicalAccessGateway
 import com.prog2.catalog.synchronization.domain.ports.in.SearchProfessionalsUseCase;
 
 /** CU-04: resuelve una página local incluso si la copia requiere aviso de desactualización. */
+@RequiredArgsConstructor
+@Component("searchProfessionalsUseCase")
 public class SearchProfessionalsUseCaseImpl implements SearchProfessionalsUseCase {
     private final CatalogQueryRepository repository;
     private final TechnicalAccessGateway access;
     private final CatalogSynchronizationGuard guard;
     private final CatalogStatusPolicy policy;
 
-    public SearchProfessionalsUseCaseImpl(CatalogQueryRepository repository, TechnicalAccessGateway access,
-            CatalogSynchronizationGuard guard, CatalogStatusPolicy policy) {
-        this.repository = repository;
-        this.access = access;
-        this.guard = guard;
-        this.policy = policy;
-    }
 
     @Override
     public ProfessionalSearchResult search(ProfessionalSearchCriteria criteria) {

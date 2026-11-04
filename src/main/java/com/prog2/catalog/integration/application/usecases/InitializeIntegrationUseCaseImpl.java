@@ -1,5 +1,6 @@
 package com.prog2.catalog.integration.application.usecases;
 
+import lombok.RequiredArgsConstructor;
 import java.time.Clock;
 
 import org.springframework.stereotype.Component;
@@ -21,18 +22,13 @@ import com.prog2.catalog.integration.domain.ports.out.IntegrationSessionReposito
  * el coordinador de infraestructura decide cuándo repetir un resultado recuperable.
  */
 @Component
+@RequiredArgsConstructor
 public class InitializeIntegrationUseCaseImpl implements InitializeIntegrationUseCase {
 
     private final CentralIntegrationGateway gateway;
     private final IntegrationSessionRepository sessions;
     private final Clock clock;
 
-    public InitializeIntegrationUseCaseImpl(CentralIntegrationGateway gateway,
-            IntegrationSessionRepository sessions, Clock clock) {
-        this.gateway = gateway;
-        this.sessions = sessions;
-        this.clock = clock;
-    }
 
     @Override
     public InitializationResult initialize() {

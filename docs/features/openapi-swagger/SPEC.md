@@ -36,7 +36,7 @@ Describe el objetivo en lenguaje de producto. -->
 
 Permitir a desarrolladores y revisores consultar el contrato OpenAPI y probar las
 APIs existentes mediante Swagger UI. [Issue #23](https://github.com/prog2-perassiferrara/backend-catalogo/issues/23).
-Fuentes: [enunciado, sección 12](../../../../PROJECT_STATEMENT-v1.md) y
+Fuentes: enunciado, sección 12 (documento externo de cátedra `PROJECT_STATEMENT-v1.md`) y
 [contratos del README](../../../README.md). El enunciado exige documentar contratos;
 la elección de OpenAPI/Swagger corresponde a esta mejora.
 

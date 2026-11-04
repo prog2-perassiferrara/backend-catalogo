@@ -1,5 +1,6 @@
 package com.prog2.catalog.integration.application.usecases;
 
+import lombok.RequiredArgsConstructor;
 import java.time.Clock;
 
 import org.springframework.stereotype.Component;
@@ -15,15 +16,12 @@ import com.prog2.catalog.integration.domain.ports.out.IntegrationSessionReposito
  * El adaptador HTTP protegido reutiliza esta comprobación para entregar el token a Turnos.
  */
 @Component
+@RequiredArgsConstructor
 public class GetTechnicalTokenUseCaseImpl implements GetTechnicalTokenUseCase {
 
     private final IntegrationSessionRepository sessions;
     private final Clock clock;
 
-    public GetTechnicalTokenUseCaseImpl(IntegrationSessionRepository sessions, Clock clock) {
-        this.sessions = sessions;
-        this.clock = clock;
-    }
 
     /**
      * {@inheritDoc}

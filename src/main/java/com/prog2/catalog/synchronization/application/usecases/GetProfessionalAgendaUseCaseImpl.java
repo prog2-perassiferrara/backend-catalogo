@@ -1,5 +1,7 @@
 package com.prog2.catalog.synchronization.application.usecases;
 
+import org.springframework.stereotype.Component;
+import lombok.RequiredArgsConstructor;
 import com.prog2.catalog.synchronization.application.exception.CatalogQueryException;
 import com.prog2.catalog.synchronization.application.service.*;
 import com.prog2.catalog.synchronization.domain.enums.*;
@@ -9,19 +11,14 @@ import com.prog2.catalog.synchronization.domain.ports.in.GetProfessionalAgendaUs
 import com.prog2.catalog.synchronization.domain.ports.out.*;
 
 /** CU-05: comprueba la vigencia de la misma lectura que entrega, sin consultar a cátedra. */
+@RequiredArgsConstructor
+@Component("getProfessionalAgendaUseCase")
 public class GetProfessionalAgendaUseCaseImpl implements GetProfessionalAgendaUseCase {
     private final CatalogQueryRepository repository;
     private final TechnicalAccessGateway access;
     private final CatalogSynchronizationGuard guard;
     private final CatalogStatusPolicy policy;
 
-    public GetProfessionalAgendaUseCaseImpl(CatalogQueryRepository repository, TechnicalAccessGateway access,
-            CatalogSynchronizationGuard guard, CatalogStatusPolicy policy) {
-        this.repository = repository;
-        this.access = access;
-        this.guard = guard;
-        this.policy = policy;
-    }
 
     @Override
     public ProfessionalAgenda get(long professionalId) {

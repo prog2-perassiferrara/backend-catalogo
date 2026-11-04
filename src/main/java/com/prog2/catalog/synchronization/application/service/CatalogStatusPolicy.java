@@ -1,5 +1,7 @@
 package com.prog2.catalog.synchronization.application.service;
 
+import org.springframework.stereotype.Component;
+import lombok.RequiredArgsConstructor;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -9,11 +11,12 @@ import com.prog2.catalog.synchronization.domain.model.CatalogState;
 import com.prog2.catalog.synchronization.domain.model.CatalogStatus;
 
 /** Aplica D-01 en un único lugar. Los 60 s incluyen el límite y se evalúan al terminar la lectura. */
+@RequiredArgsConstructor
+@Component("catalogStatusPolicy")
 public class CatalogStatusPolicy {
     private static final Duration MAX_AGE = Duration.ofSeconds(60);
     private final Clock clock;
 
-    public CatalogStatusPolicy(Clock clock) { this.clock = clock; }
 
     /**
      * @param state metadata confirmada, sin diagnosticar vigencia a partir de su fase solamente

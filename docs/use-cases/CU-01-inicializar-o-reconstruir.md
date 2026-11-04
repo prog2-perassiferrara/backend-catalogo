@@ -47,6 +47,6 @@
 
 ## Fuentes y pendientes
 
-**Fuentes:** [enunciado, sección 6.1](../../../PROJECT_STATEMENT-v1.md); [contrato, sección 7](../../../INTEGRATION_REFERENCE-v2.md).
+**Fuentes:** enunciado, sección 6.1 (documento externo de cátedra `PROJECT_STATEMENT-v1.md`); contrato, sección 7 (documento externo de cátedra `INTEGRATION_REFERENCE-v2.md`).
 
 **Pendiente para el PLAN:** estrategia de reemplazo y concurrencia.

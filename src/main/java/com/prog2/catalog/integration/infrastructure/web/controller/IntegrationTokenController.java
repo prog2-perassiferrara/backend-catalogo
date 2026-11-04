@@ -1,5 +1,6 @@
 package com.prog2.catalog.integration.infrastructure.web.controller;
 
+import lombok.RequiredArgsConstructor;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -31,13 +32,11 @@ import com.prog2.catalog.integration.infrastructure.web.dto.TechnicalTokenRespon
  */
 @RestController
 @RequestMapping("/api/internal/catedra/token")
+@RequiredArgsConstructor
 public class IntegrationTokenController {
 
     private final GetTechnicalTokenUseCase getTechnicalToken;
 
-    public IntegrationTokenController(GetTechnicalTokenUseCase getTechnicalToken) {
-        this.getTechnicalToken = getTechnicalToken;
-    }
 
     /**
      * Entrega solo el token existente; no autentica ni renueva la cuenta técnica.

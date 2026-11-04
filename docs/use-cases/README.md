@@ -2,7 +2,7 @@
 
 **Estado:** Los seis casos fueron revisados con el usuario. La interpretación de disponibilidad en CU-04 quedó acordada como decisión del proyecto. Estos casos describen comportamiento y no sustituyen las `SPEC.md` de cada funcionalidad.
 
-**Fuentes:** [enunciado](../../../PROJECT_STATEMENT-v1.md), secciones 4.1, 5 y 6; [contrato de integración](../../../INTEGRATION_REFERENCE-v2.md), secciones 7, 14 y 15.3.
+**Fuentes:** enunciado (documento externo de cátedra `PROJECT_STATEMENT-v1.md`), secciones 4.1, 5 y 6; contrato de integración (documento externo de cátedra `INTEGRATION_REFERENCE-v2.md`), secciones 7, 14 y 15.3.
 
 ## Estructura de las descripciones
 
@@ -17,7 +17,7 @@ CU-01 y CU-03 son procesos automáticos de soporte: no requieren inventar un act
 - **Usuario final vía KMP:** consulta profesionales directamente en Catálogo y disponibilidad real y reservas directamente en Turnos. Es una decisión del proyecto; el enunciado no prescribe esa ruta.
 - **Backend Turnos:** consume profesionales y agendas vigentes mediante un contrato protegido con JWT.
 - **Servicio de cátedra:** actor de apoyo que provee snapshot REST, datos Redis y notificaciones Kafka. No es el usuario final.
-- El arranque es un disparador interno, no un actor. Falta acordar cómo detectar notificaciones perdidas.
+- El arranque es un disparador interno, no un actor. Con copia confirmada, el monitor comprueba Redis inmediatamente y, por defecto, cada 30 segundos desde el fin de la ejecución anterior; así detecta atraso aunque se pierdan notificaciones Kafka.
 
 ## Diagrama
 
