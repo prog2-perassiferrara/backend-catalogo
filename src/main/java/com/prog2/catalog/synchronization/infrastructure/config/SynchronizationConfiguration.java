@@ -13,15 +13,6 @@ import com.prog2.catalog.infrastructure.config.CatalogOperationalProperties;
 import com.prog2.catalog.synchronization.application.usecases.SynchronizeCatalogUseCaseImpl;
 import com.prog2.catalog.synchronization.application.usecases.RecoverCatalogUseCaseImpl;
 import com.prog2.catalog.synchronization.application.usecases.UpdateCatalogUseCaseImpl;
-import com.prog2.catalog.synchronization.application.usecases.GetProfessionalAgendaUseCaseImpl;
-import com.prog2.catalog.synchronization.application.usecases.GetCatalogStatusUseCaseImpl;
-import com.prog2.catalog.synchronization.application.usecases.SearchProfessionalsUseCaseImpl;
-import com.prog2.catalog.synchronization.application.usecases.GetProfessionalCategoriesUseCaseImpl;
-import com.prog2.catalog.synchronization.domain.ports.in.SearchProfessionalsUseCase;
-import com.prog2.catalog.synchronization.domain.ports.in.GetProfessionalCategoriesUseCase;
-import com.prog2.catalog.synchronization.application.service.CatalogStatusPolicy;
-import com.prog2.catalog.synchronization.domain.ports.in.GetProfessionalAgendaUseCase;
-import com.prog2.catalog.synchronization.domain.ports.in.GetCatalogStatusUseCase;
 import com.prog2.catalog.synchronization.domain.ports.in.RecoverCatalogUseCase;
 import com.prog2.catalog.synchronization.domain.ports.in.UpdateCatalogUseCase;
 import com.prog2.catalog.infrastructure.config.CatalogRemoteClients;
@@ -89,38 +80,6 @@ public class SynchronizationConfiguration {
         var settings = operational.snapshot();
         return new WebClientCatalogSnapshotAdapter(properties.baseUrl(), mapper, snapshotMapper,
                 settings.connectTimeout(), settings.readTimeout(), settings.requestTimeout(), 8 * 1024 * 1024);
-    }
-
-    @Bean
-    CatalogSynchronizationGuard catalogSynchronizationLock() {
-        return new CatalogSynchronizationGuard();
-    }
-
-    @Bean
-    CatalogStatusPolicy catalogStatusPolicy(Clock clock) { return new CatalogStatusPolicy(clock); }
-
-    @Bean
-    SearchProfessionalsUseCase searchProfessionalsUseCase(CatalogQueryRepository repository,
-            TechnicalAccessGateway access, CatalogSynchronizationGuard guard, CatalogStatusPolicy policy) {
-        return new SearchProfessionalsUseCaseImpl(repository, access, guard, policy);
-    }
-
-    @Bean
-    GetProfessionalCategoriesUseCase getProfessionalCategoriesUseCase(CatalogQueryRepository repository,
-            TechnicalAccessGateway access, CatalogSynchronizationGuard guard, CatalogStatusPolicy policy) {
-        return new GetProfessionalCategoriesUseCaseImpl(repository, access, guard, policy);
-    }
-
-    @Bean
-    GetProfessionalAgendaUseCase getProfessionalAgendaUseCase(CatalogQueryRepository repository,
-            TechnicalAccessGateway access, CatalogSynchronizationGuard guard, CatalogStatusPolicy policy) {
-        return new GetProfessionalAgendaUseCaseImpl(repository, access, guard, policy);
-    }
-
-    @Bean
-    GetCatalogStatusUseCase getCatalogStatusUseCase(CatalogQueryRepository repository,
-            TechnicalAccessGateway access, CatalogSynchronizationGuard guard, CatalogStatusPolicy policy) {
-        return new GetCatalogStatusUseCaseImpl(repository, access, guard, policy);
     }
 
     @Bean

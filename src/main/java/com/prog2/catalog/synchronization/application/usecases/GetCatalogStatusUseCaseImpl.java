@@ -1,5 +1,7 @@
 package com.prog2.catalog.synchronization.application.usecases;
 
+import org.springframework.stereotype.Component;
+import lombok.RequiredArgsConstructor;
 import com.prog2.catalog.synchronization.application.exception.CatalogQueryException;
 import com.prog2.catalog.synchronization.application.service.*;
 import com.prog2.catalog.synchronization.domain.enums.CatalogQueryFailure;
@@ -9,19 +11,14 @@ import com.prog2.catalog.synchronization.domain.ports.in.GetCatalogStatusUseCase
 import com.prog2.catalog.synchronization.domain.ports.out.*;
 
 /** CU-06: permanece disponible durante sincronización leyendo únicamente metadata confirmada. */
+@RequiredArgsConstructor
+@Component("getCatalogStatusUseCase")
 public class GetCatalogStatusUseCaseImpl implements GetCatalogStatusUseCase {
     private final CatalogQueryRepository repository;
     private final TechnicalAccessGateway access;
     private final CatalogSynchronizationGuard guard;
     private final CatalogStatusPolicy policy;
 
-    public GetCatalogStatusUseCaseImpl(CatalogQueryRepository repository, TechnicalAccessGateway access,
-            CatalogSynchronizationGuard guard, CatalogStatusPolicy policy) {
-        this.repository = repository;
-        this.access = access;
-        this.guard = guard;
-        this.policy = policy;
-    }
 
     @Override
     public CatalogStatus get() {

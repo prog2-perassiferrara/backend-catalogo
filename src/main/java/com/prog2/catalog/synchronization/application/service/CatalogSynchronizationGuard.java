@@ -1,5 +1,6 @@
 package com.prog2.catalog.synchronization.application.service;
 
+import org.springframework.stereotype.Component;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
@@ -7,6 +8,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  * La escritura es reentrante para CU-02 → CU-03 → CU-01; ninguna espera mantiene
  * una transacción SQL abierta. La verificación vive solo en esta ejecución.
  */
+@Component("catalogSynchronizationLock")
 public class CatalogSynchronizationGuard {
     private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
     private volatile boolean verificationRequired = true;

@@ -1,5 +1,7 @@
 package com.prog2.catalog.synchronization.application.usecases;
 
+import org.springframework.stereotype.Component;
+import lombok.RequiredArgsConstructor;
 import com.prog2.catalog.synchronization.application.exception.CatalogQueryException;
 import com.prog2.catalog.synchronization.application.service.CatalogStatusPolicy;
 import com.prog2.catalog.synchronization.application.service.CatalogSynchronizationGuard;
@@ -12,19 +14,14 @@ import com.prog2.catalog.synchronization.domain.ports.out.TechnicalAccessGateway
 import com.prog2.catalog.synchronization.domain.ports.in.GetProfessionalCategoriesUseCase;
 
 /** Entrega opciones locales de categoría, admitiendo copia anterior con estado conservador. */
+@RequiredArgsConstructor
+@Component("getProfessionalCategoriesUseCase")
 public class GetProfessionalCategoriesUseCaseImpl implements GetProfessionalCategoriesUseCase {
     private final CatalogQueryRepository repository;
     private final TechnicalAccessGateway access;
     private final CatalogSynchronizationGuard guard;
     private final CatalogStatusPolicy policy;
 
-    public GetProfessionalCategoriesUseCaseImpl(CatalogQueryRepository repository, TechnicalAccessGateway access,
-            CatalogSynchronizationGuard guard, CatalogStatusPolicy policy) {
-        this.repository = repository;
-        this.access = access;
-        this.guard = guard;
-        this.policy = policy;
-    }
 
     @Override
     public ProfessionalCategoriesResult get() {
