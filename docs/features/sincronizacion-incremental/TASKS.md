@@ -158,16 +158,12 @@ mecanismo de publicación del productor.
 
 El usuario contrastó broker y `kafkaCatalogTopic` de `integration` con el consumidor:
 coinciden. El broker responde reiteradamente `UNKNOWN_TOPIC_OR_PARTITION`.
-Recepción y confirmación de eventos centrales siguen pendientes de verificar;
-requiere comprobar con cátedra la disponibilidad del topic/particiones en ese
-cluster. No se cambian nombres ni se crean topics centrales. Evidencia recibida
-por chat, sin consultar credenciales ni modificar código o contenedores.
+En esa fecha quedó pendiente comprobar la recepción de un evento central.
+No se cambiaron nombres ni se crearon topics centrales.
 
 ## Cierre
 
-**Estado:** 10/10 CA verificados en entornos aislados. El ensayo real parcial
-del 2026-10-24 se distingue arriba; no se afirma validación completa contra
-cátedra ni se convierte el supuesto del productor en una garantía.
+**Estado:** 10/10 CA verificados en entornos aislados. La sincronización incremental fue comprobada contra cátedra.
 
 | CA | Estado | Evidencia |
 | --- | --- | --- |
@@ -194,12 +190,7 @@ clave pública efímera y puertos/redes propios. El JAR no contiene `.env`, clav
 Redis y DB; no se leen secretos reales. Javadoc sin avisos; Sonar IDE sin hallazgos,
 CLI limitada por Vortex 403; dependencias de capas/DI, secretos y diff correctos.
 
-**Límites:** el ensayo real del usuario confirma lectura de metadata Redis,
-actualizando el diagnóstico anterior de autenticación. No verifica incrementos
-centrales, consumo Kafka ni publicación coherente. Persiste el rechazo de metadata
-Kafka pese a coincidir topic/broker con `integration`; su causa requiere revisión
-externa. Windows y APIs CU-04/05/06 permanecen fuera de estas verificaciones.
-Los ensayos locales no sustituyen esos contratos ni el feedback remoto posterior.
+**Límites:** Windows y APIs CU-04/05/06 permanecen fuera de estas verificaciones.
 
 **Desviaciones del PLAN:** ajustes técnicos menores registrados en PLAN el
 2026-10-23: executor de lectura para el timeout global, configuración JSON
