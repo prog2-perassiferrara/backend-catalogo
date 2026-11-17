@@ -60,7 +60,7 @@ posteriores son feedback del usuario, no tareas ni condiciones de espera.
   - **Alcance:** terminar pruebas afectadas, revisar Javadoc, contratos/diagramas y README; completar el cierre de este archivo con evidencia real y desviaciones. Revisar límites entre capas, constructor DI y ausencia de secretos. Ensayo JAR o Compose aislado con MySQL y sesión central ficticia según el PLAN, sin modificar el entorno personal ni la infraestructura central.
   - **Dependencias:** T-01 a T-06.
   - **Referencias:** RF-01 a RF-07; CA-01 a CA-09; PLAN, estrategia de validación y regresiones.
-  - **Validación:** pruebas enfocadas con `./mvnw -B -ntp -Dtest=... test`; luego `./mvnw -B -ntp clean verify`, JaCoCo, `git diff --check` y revisión local Sonar CLI/IDE según disponibilidad. Incluir regresiones de CU-01/02/03 y recuperación JDBC sin debilitar aserciones. En el ensayo operativo comprobar los tres GET, permisos, límite de vigencia y reinicio con la misma DB. Registrar límites reales de herramientas/entorno; no presentar el evento central aún pendiente como verificado.
+  - **Validación:** pruebas enfocadas con `./mvnw -B -ntp -Dtest=... test`; luego `./mvnw -B -ntp clean verify`, JaCoCo, `git diff --check` y revisión local Sonar CLI/IDE según disponibilidad. Incluir regresiones de CU-01/02/03 y recuperación JDBC sin debilitar aserciones. En el ensayo operativo comprobar los tres GET, permisos, límite de vigencia y reinicio con la misma DB. Registrar límites reales de herramientas y entorno.
 
 ## Cierre
 
