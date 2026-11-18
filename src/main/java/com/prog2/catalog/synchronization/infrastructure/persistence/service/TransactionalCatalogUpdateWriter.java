@@ -1,5 +1,6 @@
 package com.prog2.catalog.synchronization.infrastructure.persistence.service;
 
+import lombok.RequiredArgsConstructor;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -18,6 +19,7 @@ import com.prog2.catalog.synchronization.infrastructure.persistence.repository.*
 /** Frontera transaccional: el adaptador recibe el resultado solo después del commit del proxy. */
 @Component
 @Transactional(propagation = Propagation.REQUIRES_NEW, timeout = 20)
+@RequiredArgsConstructor
 public class TransactionalCatalogUpdateWriter {
     private final JpaProfessionalCategoryRepository categories;
     private final JpaProfessionalRepository professionals;
@@ -27,20 +29,6 @@ public class TransactionalCatalogUpdateWriter {
     private final JpaCatalogRejectedRecordRepository rejections;
     private final CatalogSnapshotPersistenceMapper mapper;
     private final Clock clock;
-
-    public TransactionalCatalogUpdateWriter(JpaProfessionalCategoryRepository categories,
-            JpaProfessionalRepository professionals, JpaWeeklyScheduleRepository schedules,
-            JpaCatalogSyncStateRepository states, JpaCatalogProcessedEventRepository events,
-            JpaCatalogRejectedRecordRepository rejections, CatalogSnapshotPersistenceMapper mapper, Clock clock) {
-        this.categories = categories;
-        this.professionals = professionals;
-        this.schedules = schedules;
-        this.states = states;
-        this.events = events;
-        this.rejections = rejections;
-        this.mapper = mapper;
-        this.clock = clock;
-    }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW, readOnly = true, timeout = 20)
     public CatalogState getState() {

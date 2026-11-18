@@ -1,5 +1,6 @@
 package com.prog2.catalog.infrastructure.startup;
 
+import lombok.RequiredArgsConstructor;
 import java.time.Duration;
 import java.util.concurrent.*;
 import org.slf4j.Logger;
@@ -12,6 +13,7 @@ import com.prog2.catalog.synchronization.domain.ports.in.UpdateCatalogUseCase;
 import com.prog2.catalog.synchronization.domain.ports.out.*;
 
 /** Seguimiento independiente de Kafka, con ejecución única y demora fija después de cada comprobación. */
+@RequiredArgsConstructor
 public class CatalogSynchronizationMonitor implements AutoCloseable {
     private static final Logger LOGGER = LoggerFactory.getLogger(CatalogSynchronizationMonitor.class);
     private final CatalogRemoteClients clients;
@@ -22,16 +24,6 @@ public class CatalogSynchronizationMonitor implements AutoCloseable {
     private final Duration interval;
     private Future<?> task;
     private boolean closed;
-
-    public CatalogSynchronizationMonitor(CatalogRemoteClients clients, CatalogConnectionSettingsGateway settings,
-            CatalogSnapshotRepository snapshots, UpdateCatalogUseCase updates, ScheduledExecutorService scheduler, Duration interval) {
-        this.clients = clients;
-        this.settings = settings;
-        this.snapshots = snapshots;
-        this.updates = updates;
-        this.scheduler = scheduler;
-        this.interval = interval;
-    }
 
     public synchronized void start() {
         if (!closed && task == null) { task = scheduler.scheduleWithFixedDelay(this::check, 0, interval.toMillis(), TimeUnit.MILLISECONDS); }

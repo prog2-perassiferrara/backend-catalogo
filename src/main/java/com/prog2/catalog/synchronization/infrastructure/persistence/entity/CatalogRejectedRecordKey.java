@@ -1,11 +1,16 @@
 package com.prog2.catalog.synchronization.infrastructure.persistence.entity;
 
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.NoArgsConstructor;
 import java.io.Serializable;
 import java.util.Objects;
 import jakarta.persistence.*;
 
 /** Identidad estable de un registro Kafka, incluso cuando su cuerpo no contiene eventId. */
 @Embeddable
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor
 public class CatalogRejectedRecordKey implements Serializable {
     private static final long serialVersionUID = 1L;
     @Column(name = "topic", length = 249)
@@ -15,12 +20,6 @@ public class CatalogRejectedRecordKey implements Serializable {
     @Column(name = "record_offset")
     private long offset;
 
-    protected CatalogRejectedRecordKey() { }
-    public CatalogRejectedRecordKey(String topic, int partition, long offset) {
-        this.topic = topic;
-        this.partition = partition;
-        this.offset = offset;
-    }
     @Override
     public boolean equals(Object other) {
         return other instanceof CatalogRejectedRecordKey key && partition == key.partition

@@ -1,6 +1,7 @@
 package com.prog2.catalog.synchronization.infrastructure.persistence.adapter;
 
 import java.util.function.Supplier;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import com.prog2.catalog.synchronization.domain.exception.CatalogReadException;
@@ -11,10 +12,9 @@ import com.prog2.catalog.synchronization.infrastructure.persistence.service.Tran
 /** Adapter del Repository de consultas. Traduce también fallos al salir del proxy, sin filtrar SQL. */
 @Component
 @Slf4j
+@RequiredArgsConstructor
 public class JpaCatalogQueryAdapter implements CatalogQueryRepository {
     private final TransactionalCatalogQueryReader reader;
-
-    public JpaCatalogQueryAdapter(TransactionalCatalogQueryReader reader) { this.reader = reader; }
 
     @Override
     public CatalogSearchView search(ProfessionalSearchCriteria criteria) { return read(() -> reader.search(criteria)); }

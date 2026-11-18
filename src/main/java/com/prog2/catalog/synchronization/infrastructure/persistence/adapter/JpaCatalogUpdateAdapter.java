@@ -1,5 +1,6 @@
 package com.prog2.catalog.synchronization.infrastructure.persistence.adapter;
 
+import lombok.RequiredArgsConstructor;
 import java.util.UUID;
 import java.util.function.Supplier;
 import org.springframework.stereotype.Component;
@@ -12,9 +13,9 @@ import com.prog2.catalog.synchronization.infrastructure.persistence.service.Tran
 
 /** Adapter de persistencia que incluye los errores de confirmación del proxy transaccional. */
 @Component
+@RequiredArgsConstructor
 public class JpaCatalogUpdateAdapter implements CatalogUpdateRepository {
     private final TransactionalCatalogUpdateWriter writer;
-    public JpaCatalogUpdateAdapter(TransactionalCatalogUpdateWriter writer) { this.writer = writer; }
     @Override public CatalogState getState() { return storage(writer::getState); }
     @Override public boolean isProcessed(String id) { return storage(() -> writer.isProcessed(id)); }
     @Override public boolean isRejected(RejectedCatalogRecord value) { return storage(() -> writer.isRejected(value)); }

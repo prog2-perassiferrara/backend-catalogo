@@ -1,5 +1,8 @@
 package com.prog2.catalog.synchronization.infrastructure.persistence.entity;
 
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.NoArgsConstructor;
 import lombok.Getter;
 import java.time.Instant;
 
@@ -11,6 +14,8 @@ import jakarta.persistence.Table;
 /** Fila de la réplica local. El ID y los tiempos proceden de cátedra, sin generación local. */
 @Entity
 @Table(name = "professional")
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor
 public class ProfessionalEntity {
     @Id
     @Column(name = "id", nullable = false)
@@ -39,18 +44,6 @@ public class ProfessionalEntity {
     @Column(name = "updated_at", nullable = false)
     @Getter
     private Instant updatedAt;
-
-    protected ProfessionalEntity() { }
-
-    public ProfessionalEntity(Long id, long categoryId, String firstName, String lastName, boolean enabled, Instant createdAt, Instant updatedAt) {
-        this.id = id;
-        this.categoryId = categoryId;
-        this.firstName = firstName;
-        this.lastName = lastName;
-        this.enabled = enabled;
-        this.createdAt = createdAt;
-        this.updatedAt = updatedAt;
-    }
 
     public boolean getEnabled() {
         return enabled;

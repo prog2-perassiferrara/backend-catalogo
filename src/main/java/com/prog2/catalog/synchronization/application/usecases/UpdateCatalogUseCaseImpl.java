@@ -2,6 +2,8 @@ package com.prog2.catalog.synchronization.application.usecases;
 
 import java.time.*;
 import java.util.UUID;
+import lombok.AccessLevel;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import com.prog2.catalog.synchronization.application.service.CatalogSynchronizationGuard;
 import com.prog2.catalog.synchronization.domain.enums.*;
@@ -16,6 +18,7 @@ import com.prog2.catalog.synchronization.domain.ports.out.*;
  * No mantiene transacciones abiertas durante Redis, pausas ni reconstrucción.
  */
 @Slf4j
+@RequiredArgsConstructor
 public class UpdateCatalogUseCaseImpl implements UpdateCatalogUseCase {
     /**
      * Parámetros inmutables del ciclo incremental, independientes de Spring y del entorno.
@@ -34,18 +37,6 @@ public class UpdateCatalogUseCaseImpl implements UpdateCatalogUseCase {
     private final CatalogSynchronizationGuard lock;
     private Instant nextAttempt;
     private CatalogUpdateResult stopped;
-
-    public UpdateCatalogUseCaseImpl(CatalogChangesGateway changes, CatalogUpdateRepository repository,
-            RecoverCatalogUseCase recovery, TechnicalAccessGateway access,
-            Clock clock, IncrementalRetrySettings retrySettings, CatalogSynchronizationGuard lock) {
-        this.changes = changes;
-        this.repository = repository;
-        this.recovery = recovery;
-        this.access = access;
-        this.clock = clock;
-        this.retrySettings = retrySettings;
-        this.lock = lock;
-    }
 
     @Override
     public CatalogUpdateResult process(CatalogNotification notification) { return execute(notification); }
@@ -205,6 +196,7 @@ public class UpdateCatalogUseCaseImpl implements UpdateCatalogUseCase {
         return new CatalogUpdateResult(repository.getState().phase(), true, null, code, null);
     }
 
+    @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
     private static final class UpdateCycle {
         private final UUID runId = UUID.randomUUID();
         private final CatalogNotification notification;
@@ -212,6 +204,5 @@ public class UpdateCatalogUseCaseImpl implements UpdateCatalogUseCase {
         private boolean uncertain;
         private boolean writing;
         private CatalogSnapshotException failure = new CatalogSnapshotException(SnapshotFailureKind.TEMPORARY, "CATALOG_INTERRUPTED");
-        private UpdateCycle(CatalogNotification notification) { this.notification = notification; }
     }
 }

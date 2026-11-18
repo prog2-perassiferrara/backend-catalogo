@@ -1,5 +1,7 @@
 package com.prog2.catalog.synchronization.infrastructure.persistence.entity;
 
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -9,6 +11,7 @@ import com.prog2.catalog.synchronization.domain.enums.SynchronizationPhase;
 /** Fila única de control; el bloqueo de escritura protege datos y versión conjuntamente. */
 @Entity
 @Table(name = "catalog_sync_state")
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class CatalogSyncStateEntity {
     @Id
     private Long id;
@@ -33,8 +36,6 @@ public class CatalogSyncStateEntity {
     private Long observedVersion;
     @Column(name = "last_checked_at")
     private Instant lastCheckedAt;
-
-    protected CatalogSyncStateEntity() { }
 
     public void begin(UUID runId, Instant now) {
         lastRunId = runId.toString();

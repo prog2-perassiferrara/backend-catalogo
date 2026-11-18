@@ -1,5 +1,6 @@
 package com.prog2.catalog.synchronization.infrastructure.persistence.service;
 
+import lombok.RequiredArgsConstructor;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
@@ -21,22 +22,13 @@ import com.prog2.catalog.synchronization.infrastructure.persistence.specificatio
 @Component
 @Transactional(readOnly = true, propagation = Propagation.REQUIRES_NEW,
         isolation = Isolation.REPEATABLE_READ, timeout = 5)
+@RequiredArgsConstructor
 public class TransactionalCatalogQueryReader {
     private final JpaCatalogSyncStateRepository states;
     private final JpaProfessionalRepository professionals;
     private final JpaWeeklyScheduleRepository schedules;
     private final JpaProfessionalCategoryRepository categories;
     private final CatalogSnapshotPersistenceMapper mapper;
-
-    public TransactionalCatalogQueryReader(JpaCatalogSyncStateRepository states, JpaProfessionalRepository professionals,
-            JpaWeeklyScheduleRepository schedules, JpaProfessionalCategoryRepository categories,
-            CatalogSnapshotPersistenceMapper mapper) {
-        this.states = states;
-        this.professionals = professionals;
-        this.schedules = schedules;
-        this.categories = categories;
-        this.mapper = mapper;
-    }
 
     /** @return página y total de la vista que comienza con la lectura de metadata */
     public CatalogSearchView search(ProfessionalSearchCriteria criteria) {

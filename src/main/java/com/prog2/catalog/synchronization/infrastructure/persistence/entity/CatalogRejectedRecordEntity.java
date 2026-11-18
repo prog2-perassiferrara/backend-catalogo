@@ -1,11 +1,16 @@
 package com.prog2.catalog.synchronization.infrastructure.persistence.entity;
 
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.NoArgsConstructor;
 import java.time.Instant;
 import jakarta.persistence.*;
 
 /** Rechazo durable sin copiar el contenido externo ni afirmar aplicación de catálogo. */
 @Entity
 @Table(name = "catalog_rejected_record")
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor
 public class CatalogRejectedRecordEntity {
     @EmbeddedId
     private CatalogRejectedRecordKey id;
@@ -14,10 +19,4 @@ public class CatalogRejectedRecordEntity {
     @Column(name = "rejected_at", nullable = false)
     private Instant rejectedAt;
 
-    protected CatalogRejectedRecordEntity() { }
-    public CatalogRejectedRecordEntity(CatalogRejectedRecordKey id, String safeCode, Instant now) {
-        this.id = id;
-        this.safeCode = safeCode;
-        this.rejectedAt = now;
-    }
 }

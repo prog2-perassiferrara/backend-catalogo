@@ -1,5 +1,7 @@
 package com.prog2.catalog.synchronization.application.usecases;
 
+import lombok.RequiredArgsConstructor;
+import lombok.AccessLevel;
 import java.time.Clock;
 import java.time.Duration;
 import java.util.UUID;
@@ -15,25 +17,15 @@ import com.prog2.catalog.synchronization.domain.ports.out.*;
  * Coordina una carga completa. El bloqueo cubre el ciclo completo, no mantiene abierta una transacción.
  * Los intentos del ciclo comparten candidato y runId; HTTP y las pausas ocurren fuera de MySQL.
  */
+@RequiredArgsConstructor
 public class SynchronizeCatalogUseCaseImpl implements SynchronizeCatalogUseCase {
-    private final int maxAttempts;
     private final CatalogSnapshotGateway snapshots;
     private final CatalogSnapshotRepository repository;
     private final TechnicalAccessGateway access;
     private final Clock clock;
+    private final int maxAttempts;
     private final Duration retryDelay;
     private final CatalogSynchronizationGuard cycleLock;
-
-    public SynchronizeCatalogUseCaseImpl(CatalogSnapshotGateway snapshots, CatalogSnapshotRepository repository,
-            TechnicalAccessGateway access, Clock clock, int maxAttempts, Duration retryDelay, CatalogSynchronizationGuard cycleLock) {
-        this.snapshots = snapshots;
-        this.repository = repository;
-        this.access = access;
-        this.clock = clock;
-        this.maxAttempts = maxAttempts;
-        this.retryDelay = retryDelay;
-        this.cycleLock = cycleLock;
-    }
 
     @Override
     public SynchronizationResult synchronize() {
@@ -170,6 +162,7 @@ public class SynchronizeCatalogUseCaseImpl implements SynchronizeCatalogUseCase 
     }
 
     /** Estado privado de una ejecución; no se comparte entre llamadas ni se conserva al finalizar. */
+    @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
     private static final class SnapshotCycle {
         private final UUID runId;
         private CatalogSnapshot candidate;
@@ -180,8 +173,5 @@ public class SynchronizeCatalogUseCaseImpl implements SynchronizeCatalogUseCase 
         private String diagnostic = "SNAPSHOT_INTERRUPTED";
         private SnapshotFailureKind failureKind = SnapshotFailureKind.TEMPORARY;
 
-        private SnapshotCycle(UUID runId) {
-            this.runId = runId;
-        }
     }
 }

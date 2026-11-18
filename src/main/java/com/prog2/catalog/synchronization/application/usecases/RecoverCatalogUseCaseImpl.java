@@ -1,5 +1,6 @@
 package com.prog2.catalog.synchronization.application.usecases;
 
+import lombok.RequiredArgsConstructor;
 import java.time.*;
 import java.util.Optional;
 import com.prog2.catalog.synchronization.application.service.CatalogSynchronizationGuard;
@@ -13,6 +14,7 @@ import com.prog2.catalog.synchronization.domain.ports.out.*;
  * ejecución pertenecen a la recuperación pendiente, no a la notificación que la descubre.
  * Todas las entradas toman el mismo bloqueo reentrante que CU-01 y CU-02.
  */
+@RequiredArgsConstructor
 public class RecoverCatalogUseCaseImpl implements RecoverCatalogUseCase {
     /**
      * Presupuesto y pausas de recuperación, sin dependencias de configuración o infraestructura.
@@ -26,23 +28,12 @@ public class RecoverCatalogUseCaseImpl implements RecoverCatalogUseCase {
     private final CatalogUpdateRepository repository;
     private final TechnicalAccessGateway access;
     private final Clock clock;
-    private final CatalogSynchronizationGuard lock;
     private final RecoverySettings recoverySettings;
+    private final CatalogSynchronizationGuard lock;
     private CatalogRecoveryReason pending;
     private Instant nextAttempt;
     private int cycles;
     private SynchronizationResult stopped;
-
-    public RecoverCatalogUseCaseImpl(SynchronizeCatalogUseCase snapshots, CatalogUpdateRepository repository,
-            TechnicalAccessGateway access, Clock clock, RecoverySettings recoverySettings,
-            CatalogSynchronizationGuard lock) {
-        this.snapshots = snapshots;
-        this.repository = repository;
-        this.access = access;
-        this.clock = clock;
-        this.lock = lock;
-        this.recoverySettings = recoverySettings;
-    }
 
     @Override
     public SynchronizationResult recover(CatalogRecoveryReason reason) {

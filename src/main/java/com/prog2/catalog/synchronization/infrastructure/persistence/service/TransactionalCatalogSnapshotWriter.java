@@ -1,5 +1,6 @@
 package com.prog2.catalog.synchronization.infrastructure.persistence.service;
 
+import lombok.RequiredArgsConstructor;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.UUID;
@@ -21,6 +22,7 @@ import com.prog2.catalog.synchronization.infrastructure.persistence.repository.*
  * el control, por lo que el adaptador puede traducir también fallos producidos durante el commit.
  */
 @Component
+@RequiredArgsConstructor
 public class TransactionalCatalogSnapshotWriter {
     private final JpaProfessionalCategoryRepository categories;
     private final JpaProfessionalRepository professionals;
@@ -29,19 +31,6 @@ public class TransactionalCatalogSnapshotWriter {
     private final CatalogSnapshotPersistenceMapper mapper;
     private final EntityManager entityManager;
     private final Clock clock;
-
-    public TransactionalCatalogSnapshotWriter(JpaProfessionalCategoryRepository categories,
-            JpaProfessionalRepository professionals, JpaWeeklyScheduleRepository schedules,
-            JpaCatalogSyncStateRepository states, CatalogSnapshotPersistenceMapper mapper,
-            EntityManager entityManager, Clock clock) {
-        this.categories = categories;
-        this.professionals = professionals;
-        this.schedules = schedules;
-        this.states = states;
-        this.mapper = mapper;
-        this.entityManager = entityManager;
-        this.clock = clock;
-    }
 
     /** Cada reconciliación lee metadata confirmada en un contexto nuevo, sin valores cacheados. */
     @Transactional(propagation = Propagation.REQUIRES_NEW, readOnly = true)

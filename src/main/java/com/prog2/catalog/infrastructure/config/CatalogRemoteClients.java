@@ -1,5 +1,6 @@
 package com.prog2.catalog.infrastructure.config;
 
+import lombok.RequiredArgsConstructor;
 import java.time.*;
 import java.util.*;
 import io.lettuce.core.ClientOptions;
@@ -21,6 +22,7 @@ import com.prog2.catalog.synchronization.domain.ports.in.UpdateCatalogUseCase;
 import com.prog2.catalog.synchronization.infrastructure.messaging.CatalogUpdatedListener;
 
 /** Composición diferida: crea recursos con la configuración adquirida y conserva su propiedad/cierre. */
+@RequiredArgsConstructor
 public class CatalogRemoteClients implements AutoCloseable {
     private static final Logger LOGGER = LoggerFactory.getLogger(CatalogRemoteClients.class);
     private final JsonMapper json;
@@ -34,15 +36,6 @@ public class CatalogRemoteClients implements AutoCloseable {
     private KafkaMessageListenerContainer<String, String> consumer;
     private boolean stopped;
     private boolean closed;
-
-    public CatalogRemoteClients(JsonMapper json, Clock clock, Duration redisConnectTimeout,
-            Duration redisCommandTimeout, Duration kafkaTimeout) {
-        this.json = json;
-        this.clock = clock;
-        this.redisConnectTimeout = redisConnectTimeout;
-        this.redisCommandTimeout = redisCommandTimeout;
-        this.kafkaTimeout = kafkaTimeout;
-    }
 
     /** Se llama después del acceso técnico y con copia confirmada, nunca durante construcción de beans. */
     public synchronized void start(CatalogConnectionSettings settings, UpdateCatalogUseCase updates) {
