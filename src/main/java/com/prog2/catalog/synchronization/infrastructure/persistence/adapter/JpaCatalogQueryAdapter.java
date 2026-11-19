@@ -9,7 +9,10 @@ import com.prog2.catalog.synchronization.domain.model.*;
 import com.prog2.catalog.synchronization.domain.ports.out.CatalogQueryRepository;
 import com.prog2.catalog.synchronization.infrastructure.persistence.service.TransactionalCatalogQueryReader;
 
-/** Adapter del Repository de consultas. Traduce también fallos al salir del proxy, sin filtrar SQL. */
+/**
+ * Adapter del Repository de consultas. Traduce también fallos al salir del
+ * proxy, sin filtrar SQL.
+ */
 @Component
 @Slf4j
 @RequiredArgsConstructor
@@ -17,10 +20,14 @@ public class JpaCatalogQueryAdapter implements CatalogQueryRepository {
     private final TransactionalCatalogQueryReader reader;
 
     @Override
-    public CatalogSearchView search(ProfessionalSearchCriteria criteria) { return read(() -> reader.search(criteria)); }
+    public CatalogSearchView search(ProfessionalSearchCriteria criteria) {
+        return read(() -> reader.search(criteria));
+    }
 
     @Override
-    public CatalogCategoriesView readCategories() { return read(reader::readCategories); }
+    public CatalogCategoriesView readCategories() {
+        return read(reader::readCategories);
+    }
 
     @Override
     public CatalogReadView readProfessional(long professionalId) {
@@ -28,11 +35,14 @@ public class JpaCatalogQueryAdapter implements CatalogQueryRepository {
     }
 
     @Override
-    public CatalogState readState() { return read(reader::readState); }
+    public CatalogState readState() {
+        return read(reader::readState);
+    }
 
     private static <T> T read(Supplier<T> operation) {
-        try { return operation.get(); }
-        catch (RuntimeException _) {
+        try {
+            return operation.get();
+        } catch (RuntimeException _) {
             log.warn("Catalog read unavailable: CATALOG_UNAVAILABLE");
             throw new CatalogReadException();
         }

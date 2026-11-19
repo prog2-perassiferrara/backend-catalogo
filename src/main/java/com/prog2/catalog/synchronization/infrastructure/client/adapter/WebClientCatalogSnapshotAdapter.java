@@ -20,7 +20,10 @@ import com.prog2.catalog.synchronization.domain.model.CatalogSnapshot;
 import com.prog2.catalog.synchronization.domain.ports.out.CatalogSnapshotGateway;
 import com.prog2.catalog.synchronization.infrastructure.client.mapper.CatalogSnapshotResponseMapper;
 
-/** Adapter síncrono de snapshot. HTTP, límites y JSON permanecen fuera del dominio. */
+/**
+ * Adapter síncrono de snapshot. HTTP, límites y JSON permanecen fuera del
+ * dominio.
+ */
 public class WebClientCatalogSnapshotAdapter implements CatalogSnapshotGateway {
     private static final String COMMUNICATION_FAILURE = "SNAPSHOT_COMMUNICATION_FAILURE";
     private final WebClient client;
@@ -28,7 +31,10 @@ public class WebClientCatalogSnapshotAdapter implements CatalogSnapshotGateway {
     private final JsonMapper jsonMapper;
     private final Duration requestTimeout;
 
-    /** Configura tiempos finitos y un límite de respuesta, sin reintentos TCP implícitos. */
+    /**
+     * Configura tiempos finitos y un límite de respuesta, sin reintentos TCP
+     * implícitos.
+     */
     public WebClientCatalogSnapshotAdapter(URI baseUrl, JsonMapper jsonMapper,
             CatalogSnapshotResponseMapper snapshotMapper, Duration connectTimeout,
             Duration readTimeout, Duration requestTimeout, int maxBytes) {
@@ -46,7 +52,8 @@ public class WebClientCatalogSnapshotAdapter implements CatalogSnapshotGateway {
     @Override
     public CatalogSnapshot fetch(String token) {
         Payload payload;
-        // El callback ocurre en otro hilo. Conservar el estado aunque el cuerpo exceda límites o falle.
+        // El callback ocurre en otro hilo. Conservar el estado aunque el cuerpo exceda
+        // límites o falle.
         AtomicInteger receivedStatus = new AtomicInteger();
         try {
             payload = client.get().uri("/api/synchronization/snapshot")
@@ -83,7 +90,8 @@ public class WebClientCatalogSnapshotAdapter implements CatalogSnapshotGateway {
         if (payload.status() == 401) {
             return failure(SnapshotFailureKind.UNAUTHORIZED, "TECHNICAL_ACCESS_REJECTED");
         }
-        // El anexo permite cuerpos sin code. Se reconoce únicamente un código contractual conocido.
+        // El anexo permite cuerpos sin code. Se reconoce únicamente un código
+        // contractual conocido.
         String code = "";
         try {
             var node = jsonMapper.readTree(payload.body());
@@ -98,7 +106,8 @@ public class WebClientCatalogSnapshotAdapter implements CatalogSnapshotGateway {
             return failure(SnapshotFailureKind.TERMINAL, "INTEGRATION_NOT_FOUND");
         }
         SnapshotFailureKind kind = payload.status() == 500 || payload.status() == 503
-                ? SnapshotFailureKind.TEMPORARY : SnapshotFailureKind.TERMINAL;
+                ? SnapshotFailureKind.TEMPORARY
+                : SnapshotFailureKind.TERMINAL;
         return failure(kind, "SNAPSHOT_HTTP_" + payload.status());
     }
 

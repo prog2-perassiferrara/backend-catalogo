@@ -18,7 +18,10 @@ import com.prog2.catalog.synchronization.domain.ports.in.SearchProfessionalsUseC
 import com.prog2.catalog.synchronization.infrastructure.web.dto.*;
 import com.prog2.catalog.synchronization.infrastructure.web.mapper.CatalogSearchDtoMapper;
 
-/** Adaptador HTTP de CU-04; la seguridad existente exige identidad de usuario con ROLE_USER. */
+/**
+ * Adaptador HTTP de CU-04; la seguridad existente exige identidad de usuario
+ * con ROLE_USER.
+ */
 @RestController
 @RequiredArgsConstructor
 public class CatalogSearchController {
@@ -26,31 +29,32 @@ public class CatalogSearchController {
     private final GetProfessionalCategoriesUseCase categories;
     private final CatalogSearchDtoMapper mapper;
 
-
-    /** @return coincidencias paginadas, totales y estado del mismo recorrido de lectura */
-    @Operation(summary = "Buscar profesionales", description = "JWT de usuario con ROLE_USER. Filtros opcionales combinados; disponibilidad significa agenda semanal habilitada, sin garantizar huecos libres.", tags = {"Catálogo"})
+    /**
+     * @return coincidencias paginadas, totales y estado del mismo recorrido de
+     *         lectura
+     */
+    @Operation(summary = "Buscar profesionales", description = "JWT de usuario con ROLE_USER. Filtros opcionales combinados; disponibilidad significa agenda semanal habilitada, sin garantizar huecos libres.", tags = {
+            "Catálogo" })
     @ApiResponse(responseCode = "200", description = "Consulta exitosa.", useReturnTypeSchema = true)
     @ApiResponse(responseCode = "401", ref = UNAUTHORIZED_RESPONSE)
     @ApiResponse(responseCode = "403", ref = FORBIDDEN_RESPONSE)
-    @ApiResponse(responseCode = "400", description = "INVALID_SEARCH_CRITERIA",
-            content = @Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
-                    schema = @Schema(ref = PROBLEM_SCHEMA)))
-    @ApiResponse(responseCode = "503", description = "CATALOG_COPY_UNAVAILABLE o CATALOG_UNAVAILABLE",
-            content = @Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
-                    schema = @Schema(ref = PROBLEM_SCHEMA)))
+    @ApiResponse(responseCode = "400", description = "INVALID_SEARCH_CRITERIA", content = @Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = @Schema(ref = PROBLEM_SCHEMA)))
+    @ApiResponse(responseCode = "503", description = "CATALOG_COPY_UNAVAILABLE o CATALOG_UNAVAILABLE", content = @Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = @Schema(ref = PROBLEM_SCHEMA)))
     @GetMapping(path = "/api/catalog/professionals", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<ProfessionalSearchResponse> search(@Valid @ParameterObject @ModelAttribute ProfessionalSearchRequest request) {
+    public ResponseEntity<ProfessionalSearchResponse> search(
+            @Valid @ParameterObject @ModelAttribute ProfessionalSearchRequest request) {
         return noCache(mapper.toResponse(search.search(mapper.toCriteria(request))));
     }
 
-    /** @return todas las categorías, incluidas deshabilitadas, con estado apropiado */
-    @Operation(summary = "Consultar categorías", description = "JWT de usuario con ROLE_USER. Incluye categorías deshabilitadas y el estado de la copia consultada.", tags = {"Catálogo"})
+    /**
+     * @return todas las categorías, incluidas deshabilitadas, con estado apropiado
+     */
+    @Operation(summary = "Consultar categorías", description = "JWT de usuario con ROLE_USER. Incluye categorías deshabilitadas y el estado de la copia consultada.", tags = {
+            "Catálogo" })
     @ApiResponse(responseCode = "200", description = "Consulta exitosa.", useReturnTypeSchema = true)
     @ApiResponse(responseCode = "401", ref = UNAUTHORIZED_RESPONSE)
     @ApiResponse(responseCode = "403", ref = FORBIDDEN_RESPONSE)
-    @ApiResponse(responseCode = "503", description = "CATALOG_COPY_UNAVAILABLE o CATALOG_UNAVAILABLE",
-            content = @Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
-                    schema = @Schema(ref = PROBLEM_SCHEMA)))
+    @ApiResponse(responseCode = "503", description = "CATALOG_COPY_UNAVAILABLE o CATALOG_UNAVAILABLE", content = @Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = @Schema(ref = PROBLEM_SCHEMA)))
     @GetMapping(path = "/api/catalog/categories", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<ProfessionalCategoriesResponse> categories() {
         return noCache(mapper.toResponse(categories.get()));
@@ -60,4 +64,3 @@ public class CatalogSearchController {
         return ResponseEntity.ok().header(HttpHeaders.CACHE_CONTROL, "no-store").body(body);
     }
 }
-

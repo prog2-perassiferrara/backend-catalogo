@@ -14,19 +14,25 @@ import com.prog2.catalog.synchronization.domain.ports.out.*;
 
 /**
  * CU-02: parte de metadata confirmada, no del orden de notificaciones.
- * El estado privado del intento retiene candidato/runId para reconciliar una escritura incierta.
+ * El estado privado del intento retiene candidato/runId para reconciliar una
+ * escritura incierta.
  * No mantiene transacciones abiertas durante Redis, pausas ni reconstrucción.
  */
 @Slf4j
 @RequiredArgsConstructor
 public class UpdateCatalogUseCaseImpl implements UpdateCatalogUseCase {
     /**
-     * Parámetros inmutables del ciclo incremental, independientes de Spring y del entorno.
-     * @param maxAttempts intentos totales, incluido el primero
-     * @param retryDelay pausa entre intentos y para notificaciones aún no cubiertas
-     * @param retryCooldown espera antes de habilitar otro ciclo tras un fallo temporal
+     * Parámetros inmutables del ciclo incremental, independientes de Spring y del
+     * entorno.
+     * 
+     * @param maxAttempts   intentos totales, incluido el primero
+     * @param retryDelay    pausa entre intentos y para notificaciones aún no
+     *                      cubiertas
+     * @param retryCooldown espera antes de habilitar otro ciclo tras un fallo
+     *                      temporal
      */
-    public record IncrementalRetrySettings(int maxAttempts, Duration retryDelay, Duration retryCooldown) { }
+    public record IncrementalRetrySettings(int maxAttempts, Duration retryDelay, Duration retryCooldown) {
+    }
 
     private final CatalogChangesGateway changes;
     private final CatalogUpdateRepository repository;
@@ -39,75 +45,107 @@ public class UpdateCatalogUseCaseImpl implements UpdateCatalogUseCase {
     private CatalogUpdateResult stopped;
 
     @Override
-    public CatalogUpdateResult process(CatalogNotification notification) { return execute(notification); }
+    public CatalogUpdateResult process(CatalogNotification notification) {
+        return execute(notification);
+    }
 
     @Override
     public SynchronizationResult check() {
         var result = execute(null);
-        return new SynchronizationResult(result.phase(), 0, result.safeDiagnostic(), result.failureKind(), result.retryAt());
+        return new SynchronizationResult(result.phase(), 0, result.safeDiagnostic(), result.failureKind(),
+                result.retryAt());
     }
 
     @Override
     public CatalogUpdateResult reject(RejectedCatalogRecord rejection) {
-        if (!lock.trySynchronize()) { return busy(); }
+        if (!lock.trySynchronize()) {
+            return busy();
+        }
         try {
-            if (stopped != null) { return stopped; }
+            if (stopped != null) {
+                return stopped;
+            }
             access.getToken();
-            if (!repository.isRejected(rejection)) { repository.recordRejection(rejection); }
+            if (!repository.isRejected(rejection)) {
+                repository.recordRejection(rejection);
+            }
             return recorded("CATALOG_RECORD_REJECTED");
         } catch (CatalogSnapshotException failure) {
             return failed(failure, retrySettings.retryCooldown());
-        } finally { lock.endSynchronization(); }
+        } finally {
+            lock.endSynchronization();
+        }
     }
 
     private CatalogUpdateResult execute(CatalogNotification notification) {
-        if (!lock.trySynchronize()) { return busy(); }
+        if (!lock.trySynchronize()) {
+            return busy();
+        }
         try {
-            if (stopped != null) { return stopped; }
+            if (stopped != null) {
+                return stopped;
+            }
             access.getToken();
-            if (notification != null && repository.isProcessed(notification.eventId())) { return recorded("CATALOG_DUPLICATE"); }
+            if (notification != null && repository.isProcessed(notification.eventId())) {
+                return recorded("CATALOG_DUPLICATE");
+            }
             CatalogState state = repository.getState();
             if (!state.hasCopy()) {
-                return failed(new CatalogSnapshotException(SnapshotFailureKind.TERMINAL, "CATALOG_COPY_UNAVAILABLE"), Duration.ZERO);
+                return failed(new CatalogSnapshotException(SnapshotFailureKind.TERMINAL, "CATALOG_COPY_UNAVAILABLE"),
+                        Duration.ZERO);
             }
             if (notification != null && state.appliedVersion() >= notification.newVersion()) {
                 repository.recordCovered(notification);
                 return recorded("CATALOG_EVENT_COVERED");
             }
             var pending = recovery.resume();
-            if (pending.isPresent()) { return afterRecovery(pending.get(), notification); }
-            if (nextAttempt != null && clock.instant().isBefore(nextAttempt)) { return waiting("CATALOG_RETRY_WAIT", nextAttempt); }
+            if (pending.isPresent()) {
+                return afterRecovery(pending.get(), notification);
+            }
+            if (nextAttempt != null && clock.instant().isBefore(nextAttempt)) {
+                return waiting("CATALOG_RETRY_WAIT", nextAttempt);
+            }
             return run(new UpdateCycle(notification));
         } catch (CatalogSnapshotException failure) {
             return failed(failure, retrySettings.retryCooldown());
-        } finally { lock.endSynchronization(); }
+        } finally {
+            lock.endSynchronization();
+        }
     }
 
     private CatalogUpdateResult run(UpdateCycle cycle) {
         lock.requireVerification();
         repository.report(SynchronizationPhase.IN_PROGRESS, "CATALOG_UPDATE_IN_PROGRESS");
-        for (int attempt = 1; attempt <= retrySettings.maxAttempts() && !Thread.currentThread().isInterrupted(); attempt++) {
+        for (int attempt = 1; attempt <= retrySettings.maxAttempts()
+                && !Thread.currentThread().isInterrupted(); attempt++) {
             try {
                 return applyAttempt(cycle);
             } catch (CatalogDiscontinuityException failure) {
                 return afterRecovery(recovery.recover(failure.reason()), cycle.notification);
             } catch (CatalogSnapshotException failure) {
-                if (failure.kind() == SnapshotFailureKind.UNAUTHORIZED || failure.kind() == SnapshotFailureKind.TERMINAL) {
+                if (failure.kind() == SnapshotFailureKind.UNAUTHORIZED
+                        || failure.kind() == SnapshotFailureKind.TERMINAL) {
                     return failed(failure, Duration.ZERO);
                 }
-                if (!canRetry(cycle, failure, attempt)) { return finish(cycle); }
+                if (!canRetry(cycle, failure, attempt)) {
+                    return finish(cycle);
+                }
             }
         }
         return finish(cycle);
     }
 
     private boolean canRetry(UpdateCycle cycle, CatalogSnapshotException failure, int attempt) {
-        if (cycle.writing && failure.kind() == SnapshotFailureKind.UNCERTAIN) { cycle.uncertain = true; }
+        if (cycle.writing && failure.kind() == SnapshotFailureKind.UNCERTAIN) {
+            cycle.uncertain = true;
+        }
         cycle.failure = failure;
         return attempt < retrySettings.maxAttempts() && pause();
     }
 
-    /** La consulta fresca precede a cualquier repetición de una escritura incierta. */
+    /**
+     * La consulta fresca precede a cualquier repetición de una escritura incierta.
+     */
     private CatalogUpdateResult applyAttempt(UpdateCycle cycle) {
         access.getToken();
         CatalogState state = repository.getState();
@@ -118,11 +156,16 @@ public class UpdateCatalogUseCaseImpl implements UpdateCatalogUseCase {
                 return confirmed(cycle.notification, state);
             }
         }
+
+
         if (cycle.candidate == null) {
             cycle.candidate = changes.readSince(state.appliedVersion());
             cycle.candidate.validate();
+
+
         }
-        if (cycle.notification != null && cycle.notification.newVersion() > cycle.candidate.publication().currentVersion()) {
+        if (cycle.notification != null
+                && cycle.notification.newVersion() > cycle.candidate.publication().currentVersion()) {
             cycle.candidate = null;
             throw new CatalogSnapshotException(SnapshotFailureKind.TEMPORARY, "NOTIFICATION_AHEAD_OF_PUBLICATION");
         }
@@ -131,13 +174,18 @@ public class UpdateCatalogUseCaseImpl implements UpdateCatalogUseCase {
         }
         if (cycle.candidate.baseVersion() == cycle.candidate.publication().currentVersion()) {
             state = repository.checked(cycle.candidate.publication());
-        } else {
+        } 
+        
+        
+        else {
             cycle.writing = true;
             state = repository.apply(cycle.runId, cycle.candidate, cycle.notification);
             log.info("Catalog update applied: version {} -> {}, categories={}, professionals={}, schedules={}",
                     cycle.candidate.baseVersion(), state.appliedVersion(), cycle.candidate.categories().size(),
                     cycle.candidate.professionals().size(), cycle.candidate.schedules().size());
         }
+
+        
         nextAttempt = null;
         lock.confirmVerification();
         return confirmed(cycle.notification, state);
@@ -150,7 +198,9 @@ public class UpdateCatalogUseCaseImpl implements UpdateCatalogUseCase {
 
     private CatalogUpdateResult confirmed(CatalogNotification notification, CatalogState state) {
         if (notification != null) {
-            if (state.appliedVersion() < notification.newVersion()) { return waiting("NOTIFICATION_NOT_COVERED", clock.instant().plus(retrySettings.retryDelay())); }
+            if (state.appliedVersion() < notification.newVersion()) {
+                return waiting("NOTIFICATION_NOT_COVERED", clock.instant().plus(retrySettings.retryDelay()));
+            }
             repository.recordCovered(notification);
         }
         return new CatalogUpdateResult(state.phase(), notification != null, null, "CATALOG_CHECKED", null);
@@ -160,38 +210,57 @@ public class UpdateCatalogUseCaseImpl implements UpdateCatalogUseCase {
         if (result.phase() == SynchronizationPhase.SNAPSHOT_APPLIED && notification != null) {
             return confirmed(notification, repository.getState());
         }
-        if (result.failureKind() == SnapshotFailureKind.UNAUTHORIZED || result.failureKind() == SnapshotFailureKind.TERMINAL) {
+        if (result.failureKind() == SnapshotFailureKind.UNAUTHORIZED
+                || result.failureKind() == SnapshotFailureKind.TERMINAL) {
             return failed(new CatalogSnapshotException(result.failureKind(), result.safeDiagnostic()), Duration.ZERO);
         }
-        return new CatalogUpdateResult(result.phase(), false, result.retryAt(), result.safeDiagnostic(), result.failureKind());
+        return new CatalogUpdateResult(result.phase(), false, result.retryAt(), result.safeDiagnostic(),
+                result.failureKind());
     }
 
     private CatalogUpdateResult failed(CatalogSnapshotException failure, Duration delay) {
         lock.requireVerification();
         nextAttempt = clock.instant().plus(delay);
-        if (failure.kind() == SnapshotFailureKind.UNAUTHORIZED) { access.invalidate(); }
+        if (failure.kind() == SnapshotFailureKind.UNAUTHORIZED) {
+            access.invalidate();
+        }
         SynchronizationPhase phase = failure.kind() == SnapshotFailureKind.UNCERTAIN
-                ? SynchronizationPhase.UNVERIFIABLE : SynchronizationPhase.FAILED;
+                ? SynchronizationPhase.UNVERIFIABLE
+                : SynchronizationPhase.FAILED;
         CatalogUpdateResult result = new CatalogUpdateResult(phase, false, nextAttempt,
                 failure.getMessage(), failure.kind());
-        if (result.terminal()) { stopped = result; }
-        try { repository.report(phase, failure.getMessage()); }
-        catch (CatalogSnapshotException _) {
+        if (result.terminal()) {
+            stopped = result;
+        }
+        try {
+            repository.report(phase, failure.getMessage());
+        } catch (CatalogSnapshotException _) {
             return new CatalogUpdateResult(SynchronizationPhase.UNVERIFIABLE, false, nextAttempt,
-                    "CATALOG_RESULT_NOT_PERSISTED", result.terminal() ? result.failureKind() : SnapshotFailureKind.UNCERTAIN);
+                    "CATALOG_RESULT_NOT_PERSISTED",
+                    result.terminal() ? result.failureKind() : SnapshotFailureKind.UNCERTAIN);
         }
         return result;
     }
 
     private boolean pause() {
-        try { Thread.sleep(retrySettings.retryDelay()); return true; }
-        catch (InterruptedException _) { Thread.currentThread().interrupt(); return false; }
+        try {
+            Thread.sleep(retrySettings.retryDelay());
+            return true;
+        } catch (InterruptedException _) {
+            Thread.currentThread().interrupt();
+            return false;
+        }
     }
 
-    private CatalogUpdateResult busy() { return waiting("CATALOG_BUSY", clock.instant().plus(retrySettings.retryDelay())); }
-    private static CatalogUpdateResult waiting(String code, Instant next) {
-        return new CatalogUpdateResult(SynchronizationPhase.RECOVERY_WAITING, false, next, code, SnapshotFailureKind.TEMPORARY);
+    private CatalogUpdateResult busy() {
+        return waiting("CATALOG_BUSY", clock.instant().plus(retrySettings.retryDelay()));
     }
+
+    private static CatalogUpdateResult waiting(String code, Instant next) {
+        return new CatalogUpdateResult(SynchronizationPhase.RECOVERY_WAITING, false, next, code,
+                SnapshotFailureKind.TEMPORARY);
+    }
+
     private CatalogUpdateResult recorded(String code) {
         return new CatalogUpdateResult(repository.getState().phase(), true, null, code, null);
     }
@@ -203,6 +272,7 @@ public class UpdateCatalogUseCaseImpl implements UpdateCatalogUseCase {
         private CatalogChangesBatch candidate;
         private boolean uncertain;
         private boolean writing;
-        private CatalogSnapshotException failure = new CatalogSnapshotException(SnapshotFailureKind.TEMPORARY, "CATALOG_INTERRUPTED");
+        private CatalogSnapshotException failure = new CatalogSnapshotException(SnapshotFailureKind.TEMPORARY,
+                "CATALOG_INTERRUPTED");
     }
 }

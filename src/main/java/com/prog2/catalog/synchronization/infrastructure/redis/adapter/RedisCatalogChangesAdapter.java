@@ -70,7 +70,11 @@ public class RedisCatalogChangesAdapter implements CatalogChangesGateway, AutoCl
             StringRedisTemplate template = templates.get();
             String prefix = namespaces.get().replaceFirst(":\\*$", "").replaceFirst(":$", "");
             Budget budget = new Budget(maxBytes);
+
+
             CatalogPublication before = publication(template, prefix, budget);
+            
+            
             if (baseVersion < before.oldestAvailableVersion() || baseVersion > before.currentVersion()) {
                 throw discontinuity(CatalogRecoveryReason.HISTORY_UNAVAILABLE);
             }
@@ -91,18 +95,26 @@ public class RedisCatalogChangesAdapter implements CatalogChangesGateway, AutoCl
                 addIds(professionals, change.changes().professionals());
                 addIds(schedules, change.changes().weeklySchedules());
             }
+
+
             var categoryValues = load(template, prefix + ":professional-categories", categories, budget,
                     body -> entities.category(json.readValue(body, ProfessionalCategoryResponse.class)), ProfessionalCategory::id);
             var professionalValues = load(template, prefix + ":professionals", professionals, budget,
                     body -> entities.professional(json.readValue(body, ProfessionalResponse.class)), Professional::id);
             var scheduleValues = load(template, prefix + ":weekly-schedules", schedules, budget,
                     body -> entities.schedule(json.readValue(body, WeeklyScheduleResponse.class)), WeeklySchedule::id);
+            
+
             if (!before.equals(publication(template, prefix, budget))) {
                 throw discontinuity(CatalogRecoveryReason.PUBLICATION_CHANGED);
             }
+
+
             var batch = new CatalogChangesBatch(baseVersion, before, categoryValues, professionalValues, scheduleValues);
             batch.validate();
             return batch;
+
+
         } catch (RedisConnectionFailureException failure) {
             throw new CatalogSnapshotException(accessDenied(failure) ? SnapshotFailureKind.TERMINAL
                     : SnapshotFailureKind.TEMPORARY, "CATALOG_REDIS_CONNECTION_UNAVAILABLE");
