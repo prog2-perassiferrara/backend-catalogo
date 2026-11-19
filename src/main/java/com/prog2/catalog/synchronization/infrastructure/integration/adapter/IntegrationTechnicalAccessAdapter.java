@@ -1,5 +1,6 @@
 package com.prog2.catalog.synchronization.infrastructure.integration.adapter;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import com.prog2.catalog.integration.application.exception.IntegrationUnavailableException;
 import com.prog2.catalog.integration.domain.ports.in.GetTechnicalTokenUseCase;
@@ -16,17 +17,11 @@ import com.prog2.catalog.synchronization.domain.model.CatalogConnectionSettings;
  * Traduce su indisponibilidad al contrato propio de synchronization, sin leer repositorios ajenos.
  */
 @Component
+@RequiredArgsConstructor
 public class IntegrationTechnicalAccessAdapter implements TechnicalAccessGateway, CatalogConnectionSettingsGateway {
     private final GetTechnicalTokenUseCase tokens;
     private final InvalidateTechnicalAccessUseCase invalidation;
     private final GetIntegrationConfigurationUseCase configuration;
-
-    public IntegrationTechnicalAccessAdapter(GetTechnicalTokenUseCase tokens,
-            InvalidateTechnicalAccessUseCase invalidation, GetIntegrationConfigurationUseCase configuration) {
-        this.tokens = tokens;
-        this.invalidation = invalidation;
-        this.configuration = configuration;
-    }
 
     @Override
     public String getToken() {

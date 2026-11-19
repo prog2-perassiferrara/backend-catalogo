@@ -1,5 +1,6 @@
 package com.prog2.catalog.infrastructure.security.jwt;
 
+import lombok.RequiredArgsConstructor;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -15,6 +16,7 @@ import org.springframework.security.oauth2.jwt.Jwt;
  * Implementa la estrategia de validación de Spring, complementando sus validadores
  * de emisor, audiencia y tiempo. No decide permisos de rutas ni acepta tokens de cátedra.
  */
+@RequiredArgsConstructor
 public final class JwtContractValidator implements OAuth2TokenValidator<Jwt> {
 
     private static final Duration CLOCK_SKEW = Duration.ofSeconds(30);
@@ -23,12 +25,8 @@ public final class JwtContractValidator implements OAuth2TokenValidator<Jwt> {
     private static final OAuth2TokenValidatorResult INVALID = OAuth2TokenValidatorResult.failure(
             new OAuth2Error("invalid_token", "JWT does not satisfy the agreed contract", null));
 
+    /** Reloj compartido para evaluar emisión futura de forma determinista */
     private final Clock clock;
-
-    /** @param clock reloj compartido para evaluar emisión futura de forma determinista */
-    public JwtContractValidator(Clock clock) {
-        this.clock = clock;
-    }
 
     /**
      * Exige sujeto, perfil, autoridades como cadena y tiempos coherentes.

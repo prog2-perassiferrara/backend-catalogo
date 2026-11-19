@@ -1,5 +1,7 @@
 package com.prog2.catalog.synchronization.infrastructure.persistence.entity;
 
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
 import lombok.Getter;
 import java.time.Instant;
 import java.time.DayOfWeek;
@@ -17,6 +19,7 @@ import com.prog2.catalog.synchronization.domain.model.WeeklySchedule;
 /** Fila de la réplica local. El ID y los tiempos proceden de cátedra, sin generación local. */
 @Entity
 @Table(name = "weekly_schedule")
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class WeeklyScheduleEntity {
     @Id
     @Column(name = "id", nullable = false)
@@ -54,8 +57,6 @@ public class WeeklyScheduleEntity {
     @Column(name = "updated_at", nullable = false)
     @Getter
     private Instant updatedAt;
-
-    protected WeeklyScheduleEntity() { }
 
     /** Copia un horario completo, evitando intercambiar los nueve valores al construir la fila. */
     public WeeklyScheduleEntity(WeeklySchedule schedule) {

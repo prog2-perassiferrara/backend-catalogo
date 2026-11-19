@@ -1,11 +1,14 @@
 package com.prog2.catalog.synchronization.infrastructure.persistence.entity;
 
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
 import java.time.Instant;
 import jakarta.persistence.*;
 
 /** Recibo confirmado junto al efecto. La huella indexa, el ID completo verifica identidad exacta. */
 @Entity
 @Table(name = "catalog_processed_event")
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class CatalogProcessedEventEntity {
     @Id
     @Column(name = "event_hash", columnDefinition = "binary(32)")
@@ -17,7 +20,6 @@ public class CatalogProcessedEventEntity {
     @Column(name = "processed_at", nullable = false)
     private Instant processedAt;
 
-    protected CatalogProcessedEventEntity() { }
     public CatalogProcessedEventEntity(byte[] hash, String eventId, long version, Instant now) {
         this.eventHash = hash.clone();
         this.eventId = eventId;

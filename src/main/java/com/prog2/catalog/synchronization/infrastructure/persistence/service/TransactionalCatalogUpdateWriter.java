@@ -1,5 +1,6 @@
 package com.prog2.catalog.synchronization.infrastructure.persistence.service;
 
+import lombok.RequiredArgsConstructor;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -15,9 +16,13 @@ import com.prog2.catalog.synchronization.infrastructure.persistence.entity.*;
 import com.prog2.catalog.synchronization.infrastructure.persistence.mapper.CatalogSnapshotPersistenceMapper;
 import com.prog2.catalog.synchronization.infrastructure.persistence.repository.*;
 
-/** Frontera transaccional: el adaptador recibe el resultado solo después del commit del proxy. */
+/**
+ * Frontera transaccional: el adaptador recibe el resultado solo después del
+ * commit del proxy.
+ */
 @Component
 @Transactional(propagation = Propagation.REQUIRES_NEW, timeout = 20)
+@RequiredArgsConstructor
 public class TransactionalCatalogUpdateWriter {
     private final JpaProfessionalCategoryRepository categories;
     private final JpaProfessionalRepository professionals;
@@ -27,20 +32,6 @@ public class TransactionalCatalogUpdateWriter {
     private final JpaCatalogRejectedRecordRepository rejections;
     private final CatalogSnapshotPersistenceMapper mapper;
     private final Clock clock;
-
-    public TransactionalCatalogUpdateWriter(JpaProfessionalCategoryRepository categories,
-            JpaProfessionalRepository professionals, JpaWeeklyScheduleRepository schedules,
-            JpaCatalogSyncStateRepository states, JpaCatalogProcessedEventRepository events,
-            JpaCatalogRejectedRecordRepository rejections, CatalogSnapshotPersistenceMapper mapper, Clock clock) {
-        this.categories = categories;
-        this.professionals = professionals;
-        this.schedules = schedules;
-        this.states = states;
-        this.events = events;
-        this.rejections = rejections;
-        this.mapper = mapper;
-        this.clock = clock;
-    }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW, readOnly = true, timeout = 20)
     public CatalogState getState() {
@@ -52,7 +43,10 @@ public class TransactionalCatalogUpdateWriter {
         return hasProcessedEvent(eventId);
     }
 
-    /** Las consultas internas participan en la transacción de la operación que las contiene. */
+    /**
+     * Las consultas internas participan en la transacción de la operación que las
+     * contiene.
+     */
     private boolean hasProcessedEvent(String eventId) {
         return events.findById(digest(eventId)).map(receipt -> {
             if (!receipt.getEventId().equals(eventId)) {
@@ -71,24 +65,37 @@ public class TransactionalCatalogUpdateWriter {
         return rejections.existsById(key(rejection));
     }
 
-    /** Incremento real: no borra filas ajenas al lote ni reemplaza la colección completa. */
+    /**
+     * Incremento real: no borra filas ajenas al lote ni reemplaza la colección
+     * completa.
+     */
     public CatalogState apply(UUID runId, CatalogChangesBatch batch, CatalogNotification notification) {
         CatalogSyncStateEntity state = locked();
-        if (runId.toString().equals(state.getAppliedRunId())) { return mapper.toDomain(state); }
-        if (notification != null && hasProcessedEvent(notification.eventId())) { return mapper.toDomain(state); }
+        if (runId.toString().equals(state.getAppliedRunId())) {
+            return mapper.toDomain(state);
+        }
+        if (notification != null && hasProcessedEvent(notification.eventId())) {
+            return mapper.toDomain(state);
+        }
         requireBase(state, batch.baseVersion());
         batch.validate();
         categories.saveAllAndFlush(batch.categories().stream().map(mapper::toEntity).toList());
         for (Professional value : batch.professionals()) {
-            if (!categories.existsById(value.categoryId())) { throw missingReference(); }
+            if (!categories.existsById(value.categoryId())) {
+                throw missingReference();
+            }
         }
         professionals.saveAllAndFlush(batch.professionals().stream().map(mapper::toEntity).toList());
         for (WeeklySchedule value : batch.schedules()) {
-            if (!professionals.existsById(value.professionalId())) { throw missingReference(); }
+            if (!professionals.existsById(value.professionalId())) {
+                throw missingReference();
+            }
         }
         schedules.saveAllAndFlush(batch.schedules().stream().map(mapper::toEntity).toList());
         state.updated(runId, batch.publication().currentVersion(), clock.instant());
-        if (notification != null) { receipt(state, notification); }
+        if (notification != null) {
+            receipt(state, notification);
+        }
         states.saveAndFlush(state);
         return mapper.toDomain(state);
     }
@@ -99,7 +106,8 @@ public class TransactionalCatalogUpdateWriter {
 
     public void recordRejection(RejectedCatalogRecord rejection) {
         if (!hasRejectedRecord(rejection)) {
-            rejections.saveAndFlush(new CatalogRejectedRecordEntity(key(rejection), rejection.safeCode(), clock.instant()));
+            rejections.saveAndFlush(
+                    new CatalogRejectedRecordEntity(key(rejection), rejection.safeCode(), clock.instant()));
         }
     }
 
@@ -126,7 +134,9 @@ public class TransactionalCatalogUpdateWriter {
         }
     }
 
-    private CatalogSyncStateEntity locked() { return states.lockState().orElseThrow(); }
+    private CatalogSyncStateEntity locked() {
+        return states.lockState().orElseThrow();
+    }
 
     private static void requireBase(CatalogSyncStateEntity state, long version) {
         if (!Objects.equals(state.getAppliedVersion(), version)) {

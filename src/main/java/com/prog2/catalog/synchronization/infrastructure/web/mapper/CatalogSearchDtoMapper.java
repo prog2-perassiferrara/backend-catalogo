@@ -1,15 +1,15 @@
 package com.prog2.catalog.synchronization.infrastructure.web.mapper;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import com.prog2.catalog.synchronization.domain.model.*;
 import com.prog2.catalog.synchronization.infrastructure.web.dto.*;
 
 /** Adapta los filtros y publica solo los campos de CU-04, reutilizando el resumen de estado. */
 @Component
+@RequiredArgsConstructor
 public class CatalogSearchDtoMapper {
     private final CatalogQueryDtoMapper statuses;
-
-    public CatalogSearchDtoMapper(CatalogQueryDtoMapper statuses) { this.statuses = statuses; }
 
     /** @return criterios normalizados con los defaults aprobados cuando se omite paginación */
     public ProfessionalSearchCriteria toCriteria(ProfessionalSearchRequest request) {

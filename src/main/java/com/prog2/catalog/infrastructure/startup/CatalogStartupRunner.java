@@ -1,5 +1,6 @@
 package com.prog2.catalog.infrastructure.startup;
 
+import lombok.RequiredArgsConstructor;
 import java.time.Duration;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
@@ -21,38 +22,25 @@ import com.prog2.catalog.synchronization.domain.ports.in.SynchronizeCatalogUseCa
  * La espera ocupa el hilo de integración; el servidor HTTP permanece activo.
  * Tras un fallo terminal o el agotamiento del límite, la recuperación requiere reiniciar Catálogo.
  */
+@RequiredArgsConstructor
 public class CatalogStartupRunner implements AutoCloseable {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(CatalogStartupRunner.class);
-    private final int maxAttempts;
+    /** Operación que realiza y evalúa un intento. */
     private final InitializeIntegrationUseCase initializeUseCase;
+    /** Puerto público para cerrar acceso al agotar el ciclo técnico. */
     private final InvalidateTechnicalAccessUseCase invalidation;
+    /** Carga completa, ejecutada solo después del acceso técnico disponible. */
     private final SynchronizeCatalogUseCase synchronization;
+    /** Ejecutor dedicado, cuyo cierre queda a cargo de este coordinador. */
     private final ExecutorService executor;
+    /** Cantidad máxima, incluido el primer intento. */
+    private final int maxAttempts;
+    /** Pausa entre intentos recuperables, aplicada solo si queda otro intento. */
     private final Duration retryDelay;
+    /** Activa el seguimiento después del ciclo inicial; comprueba copia y acceso. */
     private final Runnable monitoring;
     private Future<?> task;
-
-    /**
-     * @param initializeUseCase operación que realiza y evalúa un intento
-     * @param invalidation puerto público para cerrar acceso al agotar el ciclo técnico
-     * @param synchronization carga completa, ejecutada solo después del acceso técnico disponible
-     * @param executor ejecutor dedicado, cuyo cierre queda a cargo de este coordinador
-     * @param maxAttempts cantidad máxima, incluido el primer intento
-     * @param retryDelay pausa entre intentos recuperables, aplicada solo si queda otro intento
-     * @param monitoring activa el seguimiento después del ciclo inicial; comprueba copia y acceso
-     */
-    public CatalogStartupRunner(InitializeIntegrationUseCase initializeUseCase,
-            InvalidateTechnicalAccessUseCase invalidation, SynchronizeCatalogUseCase synchronization,
-            ExecutorService executor, int maxAttempts, Duration retryDelay, Runnable monitoring) {
-        this.initializeUseCase = initializeUseCase;
-        this.invalidation = invalidation;
-        this.synchronization = synchronization;
-        this.executor = executor;
-        this.maxAttempts = maxAttempts;
-        this.retryDelay = retryDelay;
-        this.monitoring = monitoring;
-    }
 
     /**
      * Envía el ciclo al executor una sola vez, aunque Spring vuelva a publicar el evento.
