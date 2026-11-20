@@ -3,7 +3,7 @@
 
 > Documento **generado automáticamente** por la cátedra de Programación II (UM): RepoSense + análisis de calidad de **7 dimensiones**. **No editar a mano**: se regenera en cada evaluación.
 > Rama evaluada: `main`. Análisis **heurístico** (regex + métricas) + build: es una criba para orientar la revisión, **no una nota**. La **documentación** del repositorio no se evalúa.
-> Generado: 2026-11-18.
+> Generado: 2026-11-20.
 
 ## 1. Veredicto
 
@@ -12,14 +12,14 @@
 | Índice de calidad | **77/100** |
 | Tipo de repositorio | `backend` |
 | Build (`mvnw verify` / `gradlew check`) | OK |
-| Código (LOC) | 10,329 |
+| Código (LOC) | 10,443 |
 | Archivos de código | 184 |
 | Clases | 207 |
-| Código dentro de clases (%POO) | 76% |
+| Código dentro de clases (%POO) | 75% |
 | Funciones fuera de clases | 0 |
-| Duplicación (puerta) | 0.8% |
-| Duplicación lógica | 0.9% |
-| Duplicación de boilerplate | 6.9% |
+| Duplicación (puerta) | 0.4% |
+| Duplicación lógica | 0.4% |
+| Duplicación de boilerplate | 7.1% |
 | Cobertura | 96% |
 | Tope duro aplicado a D1 | `POO_BAJO` → D1 ≤ 60 |
 
@@ -42,7 +42,7 @@ Criterios de la cátedra (`CRITERIOS-CALIDAD.md`): **Aprobar** se juega con el p
 
 | Autor | Commits | Código (LOC) | Tests (LOC) | Docs (LOC) | Días activos | % del código |
 |---|---:|---:|---:|---:|---:|---:|
-| Valentino Perassi Ferrara | 36 | 5,255 | 6,191 | 7,636 | 21 | 100% |
+| Valentino Perassi Ferrara | 38 | 5,372 | 6,191 | 7,636 | 23 | 100% |
 
 > _El LOC de autoría lo calcula RepoSense sobre el historial y puede diferir del LOC de código del análisis (que mira el estado de `main`)._
 
@@ -109,29 +109,28 @@ El análisis encontró las siguientes señales, con el archivo y la línea donde
 | Archivo | Señales |
 |---|---:|
 | `src/main/java/com/prog2/catalog/infrastructure/security/config/SecurityConfiguration.java` | 14 |
+| `src/main/java/com/prog2/catalog/synchronization/application/usecases/UpdateCatalogUseCaseImpl.java` | 11 |
 | `src/main/java/com/prog2/catalog/synchronization/infrastructure/redis/adapter/RedisCatalogChangesAdapter.java` | 10 |
-| `src/main/java/com/prog2/catalog/synchronization/application/usecases/UpdateCatalogUseCaseImpl.java` | 10 |
-| `src/main/java/com/prog2/catalog/infrastructure/config/CatalogRemoteClients.java` | 10 |
+| `src/main/java/com/prog2/catalog/infrastructure/config/CatalogRemoteClients.java` | 9 |
 | `src/main/java/com/prog2/catalog/synchronization/infrastructure/client/adapter/WebClientCatalogSnapshotAdapter.java` | 8 |
 | `src/main/java/com/prog2/catalog/synchronization/application/usecases/SynchronizeCatalogUseCaseImpl.java` | 7 |
 | `src/main/java/com/prog2/catalog/synchronization/infrastructure/persistence/service/TransactionalCatalogUpdateWriter.java` | 6 |
 | `src/main/java/com/prog2/catalog/synchronization/infrastructure/config/SynchronizationConfiguration.java` | 6 |
-| `src/main/java/com/prog2/catalog/synchronization/application/usecases/RecoverCatalogUseCaseImpl.java` | 6 |
 | `src/main/java/com/prog2/catalog/integration/infrastructure/client/adapter/WebClientCentralIntegrationAdapter.java` | 6 |
+| `src/main/java/com/prog2/catalog/infrastructure/config/CatalogOperationalProperties.java` | 6 |
 
-**SRP/responsabilidad** (119)
+**SRP/responsabilidad** (111)
 - método 'CatalogConfiguration.catalogStartupRunner' con 5 parámetros — `src/main/java/com/prog2/catalog/infrastructure/config/CatalogConfiguration.java:52`
 - método 'CatalogOperationalProperties.CatalogOperationalProperties' de 49 líneas — `src/main/java/com/prog2/catalog/infrastructure/config/CatalogOperationalProperties.java:16`
 - método 'CatalogOperationalProperties.CatalogOperationalProperties' con 7 parámetros — `src/main/java/com/prog2/catalog/infrastructure/config/CatalogOperationalProperties.java:16`
 - método 'CatalogOperationalProperties.HttpCycle' con 5 parámetros — `src/main/java/com/prog2/catalog/infrastructure/config/CatalogOperationalProperties.java:21`
 - método 'HttpCycle.HttpCycle' con 5 parámetros — `src/main/java/com/prog2/catalog/infrastructure/config/CatalogOperationalProperties.java:21`
-- clase 'CatalogRemoteClients' grande (LOC=122, métodos=10, campos=11) — `src/main/java/com/prog2/catalog/infrastructure/config/CatalogRemoteClients.java:24`
-- clase 'CatalogRemoteClients' con baja cohesión (27%) — `src/main/java/com/prog2/catalog/infrastructure/config/CatalogRemoteClients.java:24`
-- método 'CatalogRemoteClients.CatalogRemoteClients' con 5 parámetros — `src/main/java/com/prog2/catalog/infrastructure/config/CatalogRemoteClients.java:38`
-- método 'CatalogRemoteClients.createConsumer' de 46 líneas — `src/main/java/com/prog2/catalog/infrastructure/config/CatalogRemoteClients.java:91`
-- método 'CatalogRemoteClients.createConsumer' con complejidad 8 — `src/main/java/com/prog2/catalog/infrastructure/config/CatalogRemoteClients.java:91`
-- método 'CatalogRemoteClients.handleOne' con 6 parámetros — `src/main/java/com/prog2/catalog/infrastructure/config/CatalogRemoteClients.java:117`
-- método 'CatalogRemoteClients.handleOtherException' con 5 parámetros — `src/main/java/com/prog2/catalog/infrastructure/config/CatalogRemoteClients.java:123`
+- clase 'CatalogRemoteClients' grande (LOC=114, métodos=9, campos=11) — `src/main/java/com/prog2/catalog/infrastructure/config/CatalogRemoteClients.java:26`
+- clase 'CatalogRemoteClients' con baja cohesión (28%) — `src/main/java/com/prog2/catalog/infrastructure/config/CatalogRemoteClients.java:26`
+- método 'CatalogRemoteClients.createConsumer' de 46 líneas — `src/main/java/com/prog2/catalog/infrastructure/config/CatalogRemoteClients.java:84`
+- método 'CatalogRemoteClients.createConsumer' con complejidad 8 — `src/main/java/com/prog2/catalog/infrastructure/config/CatalogRemoteClients.java:84`
+- método 'CatalogRemoteClients.handleOne' con 6 parámetros — `src/main/java/com/prog2/catalog/infrastructure/config/CatalogRemoteClients.java:110`
+- método 'CatalogRemoteClients.handleOtherException' con 5 parámetros — `src/main/java/com/prog2/catalog/infrastructure/config/CatalogRemoteClients.java:116`
 - método 'IntegrationProperties.IntegrationProperties' de 55 líneas — `src/main/java/com/prog2/catalog/infrastructure/config/IntegrationProperties.java:19`
 - método 'IntegrationProperties.IntegrationProperties' con complejidad 7 — `src/main/java/com/prog2/catalog/infrastructure/config/IntegrationProperties.java:19`
 - método 'JwtSecurityProperties.JwtSecurityProperties' de 58 líneas — `src/main/java/com/prog2/catalog/infrastructure/security/config/JwtSecurityProperties.java:23`
@@ -147,12 +146,11 @@ El análisis encontró las siguientes señales, con el archivo y la línea donde
 - método 'SecurityConfiguration.cors' de 32 líneas — `src/main/java/com/prog2/catalog/infrastructure/security/config/SecurityConfiguration.java:100`
 - método 'SecurityConfiguration.exceptionHandling' de 31 líneas — `src/main/java/com/prog2/catalog/infrastructure/security/config/SecurityConfiguration.java:101`
 - método 'SecurityConfiguration.oauth2ResourceServer' de 30 líneas — `src/main/java/com/prog2/catalog/infrastructure/security/config/SecurityConfiguration.java:102`
-- clase 'CatalogStartupRunner' grande (LOC=85, métodos=5, campos=9) — `src/main/java/com/prog2/catalog/infrastructure/startup/CatalogStartupRunner.java:24`
-- método 'CatalogStartupRunner.CatalogStartupRunner' con 7 parámetros — `src/main/java/com/prog2/catalog/infrastructure/startup/CatalogStartupRunner.java:45`
-- método 'CatalogStartupRunner.initializeTechnicalAccess' con complejidad 7 — `src/main/java/com/prog2/catalog/infrastructure/startup/CatalogStartupRunner.java:82`
-- clase 'CatalogSynchronizationMonitor' grande (LOC=57, métodos=6, campos=9) — `src/main/java/com/prog2/catalog/infrastructure/startup/CatalogSynchronizationMonitor.java:15`
-- método 'CatalogSynchronizationMonitor.CatalogSynchronizationMonitor' con 6 parámetros — `src/main/java/com/prog2/catalog/infrastructure/startup/CatalogSynchronizationMonitor.java:26`
-- método 'CatalogSynchronizationMonitor.check' con complejidad 6 — `src/main/java/com/prog2/catalog/infrastructure/startup/CatalogSynchronizationMonitor.java:41`
+- clase 'CatalogStartupRunner' grande (LOC=72, métodos=4, campos=9) — `src/main/java/com/prog2/catalog/infrastructure/startup/CatalogStartupRunner.java:26`
+- clase 'CatalogStartupRunner' con baja cohesión (33%) — `src/main/java/com/prog2/catalog/infrastructure/startup/CatalogStartupRunner.java:26`
+- método 'CatalogStartupRunner.initializeTechnicalAccess' con complejidad 7 — `src/main/java/com/prog2/catalog/infrastructure/startup/CatalogStartupRunner.java:70`
+- clase 'CatalogSynchronizationMonitor' grande (LOC=48, métodos=5, campos=9) — `src/main/java/com/prog2/catalog/infrastructure/startup/CatalogSynchronizationMonitor.java:17`
+- método 'CatalogSynchronizationMonitor.check' con complejidad 6 — `src/main/java/com/prog2/catalog/infrastructure/startup/CatalogSynchronizationMonitor.java:33`
 - método 'InitializeIntegrationUseCaseImpl.initialize' de 39 líneas — `src/main/java/com/prog2/catalog/integration/application/usecases/InitializeIntegrationUseCaseImpl.java:34`
 - método 'InitializeIntegrationUseCaseImpl.initialize' con complejidad 9 — `src/main/java/com/prog2/catalog/integration/application/usecases/InitializeIntegrationUseCaseImpl.java:34`
 - método 'IntegrationConfiguration.IntegrationConfiguration' con 10 parámetros — `src/main/java/com/prog2/catalog/integration/domain/model/IntegrationConfiguration.java:20`
@@ -163,24 +161,23 @@ El análisis encontró las siguientes señales, con el archivo y la línea donde
 - método 'WebClientCentralIntegrationAdapter.exchange' con complejidad 7 — `src/main/java/com/prog2/catalog/integration/infrastructure/client/adapter/WebClientCentralIntegrationAdapter.java:105`
 - método 'IntegrationResponse.IntegrationResponse' con 10 parámetros — `src/main/java/com/prog2/catalog/integration/infrastructure/client/dto/IntegrationResponse.java:15`
 - clase 'GetProfessionalCategoriesUseCaseImpl' con baja cohesión (33%) — `src/main/java/com/prog2/catalog/synchronization/application/usecases/GetProfessionalCategoriesUseCaseImpl.java:19`
-- clase 'RecoverCatalogUseCaseImpl' grande (LOC=77, métodos=7, campos=9) — `src/main/java/com/prog2/catalog/synchronization/application/usecases/RecoverCatalogUseCaseImpl.java:16`
-- clase 'RecoverCatalogUseCaseImpl' con baja cohesión (33%) — `src/main/java/com/prog2/catalog/synchronization/application/usecases/RecoverCatalogUseCaseImpl.java:16`
-- método 'RecoverCatalogUseCaseImpl.RecoverCatalogUseCaseImpl' con 6 parámetros — `src/main/java/com/prog2/catalog/synchronization/application/usecases/RecoverCatalogUseCaseImpl.java:36`
-- método 'RecoverCatalogUseCaseImpl.attempt' con complejidad 10 — `src/main/java/com/prog2/catalog/synchronization/application/usecases/RecoverCatalogUseCaseImpl.java:65`
-- clase 'SearchProfessionalsUseCaseImpl' con baja cohesión (33%) — `src/main/java/com/prog2/catalog/synchronization/application/usecases/SearchProfessionalsUseCaseImpl.java:19`
-- clase 'SynchronizeCatalogUseCaseImpl' grande (LOC=156, métodos=13, campos=15) — `src/main/java/com/prog2/catalog/synchronization/application/usecases/SynchronizeCatalogUseCaseImpl.java:18`
-- clase 'SynchronizeCatalogUseCaseImpl' con baja cohesión (27%) — `src/main/java/com/prog2/catalog/synchronization/application/usecases/SynchronizeCatalogUseCaseImpl.java:18`
-- método 'SynchronizeCatalogUseCaseImpl.SynchronizeCatalogUseCaseImpl' con 7 parámetros — `src/main/java/com/prog2/catalog/synchronization/application/usecases/SynchronizeCatalogUseCaseImpl.java:27`
-- método 'SynchronizeCatalogUseCaseImpl.finish' con 5 parámetros — `src/main/java/com/prog2/catalog/synchronization/application/usecases/SynchronizeCatalogUseCaseImpl.java:154`
-- clase 'SnapshotCycle' grande (LOC=13, métodos=1, campos=8) — `src/main/java/com/prog2/catalog/synchronization/application/usecases/SynchronizeCatalogUseCaseImpl.java:173`
-- clase 'UpdateCatalogUseCaseImpl' grande (LOC=183, métodos=22, campos=14) — `src/main/java/com/prog2/catalog/synchronization/application/usecases/UpdateCatalogUseCaseImpl.java:19`
-- clase 'UpdateCatalogUseCaseImpl' con baja cohesión (48%) — `src/main/java/com/prog2/catalog/synchronization/application/usecases/UpdateCatalogUseCaseImpl.java:19`
-- método 'UpdateCatalogUseCaseImpl.UpdateCatalogUseCaseImpl' con 7 parámetros — `src/main/java/com/prog2/catalog/synchronization/application/usecases/UpdateCatalogUseCaseImpl.java:38`
-- método 'UpdateCatalogUseCaseImpl.execute' con complejidad 9 — `src/main/java/com/prog2/catalog/synchronization/application/usecases/UpdateCatalogUseCaseImpl.java:72`
-- método 'UpdateCatalogUseCaseImpl.run' con complejidad 6 — `src/main/java/com/prog2/catalog/synchronization/application/usecases/UpdateCatalogUseCaseImpl.java:95`
-- método 'UpdateCatalogUseCaseImpl.applyAttempt' de 34 líneas — `src/main/java/com/prog2/catalog/synchronization/application/usecases/UpdateCatalogUseCaseImpl.java:120`
-- método 'UpdateCatalogUseCaseImpl.applyAttempt' con complejidad 7 — `src/main/java/com/prog2/catalog/synchronization/application/usecases/UpdateCatalogUseCaseImpl.java:120`
-- método 'UpdateCatalogUseCaseImpl.failed' con complejidad 6 — `src/main/java/com/prog2/catalog/synchronization/application/usecases/UpdateCatalogUseCaseImpl.java:178`
+- clase 'RecoverCatalogUseCaseImpl' grande (LOC=67, métodos=6, campos=9) — `src/main/java/com/prog2/catalog/synchronization/application/usecases/RecoverCatalogUseCaseImpl.java:18`
+- clase 'RecoverCatalogUseCaseImpl' con baja cohesión (40%) — `src/main/java/com/prog2/catalog/synchronization/application/usecases/RecoverCatalogUseCaseImpl.java:18`
+- método 'RecoverCatalogUseCaseImpl.attempt' con complejidad 10 — `src/main/java/com/prog2/catalog/synchronization/application/usecases/RecoverCatalogUseCaseImpl.java:56`
+- clase 'SynchronizeCatalogUseCaseImpl' grande (LOC=144, métodos=11, campos=15) — `src/main/java/com/prog2/catalog/synchronization/application/usecases/SynchronizeCatalogUseCaseImpl.java:21`
+- clase 'SynchronizeCatalogUseCaseImpl' con baja cohesión (18%) — `src/main/java/com/prog2/catalog/synchronization/application/usecases/SynchronizeCatalogUseCaseImpl.java:21`
+- método 'SynchronizeCatalogUseCaseImpl.finish' con 5 parámetros — `src/main/java/com/prog2/catalog/synchronization/application/usecases/SynchronizeCatalogUseCaseImpl.java:146`
+- clase 'SnapshotCycle' grande (LOC=10, métodos=0, campos=8) — `src/main/java/com/prog2/catalog/synchronization/application/usecases/SynchronizeCatalogUseCaseImpl.java:166`
+- clase 'SnapshotCycle' sin métodos (8 campos): solo datos — `src/main/java/com/prog2/catalog/synchronization/application/usecases/SynchronizeCatalogUseCaseImpl.java:166`
+- clase 'UpdateCatalogUseCaseImpl' grande (LOC=231, métodos=20, campos=14) — `src/main/java/com/prog2/catalog/synchronization/application/usecases/UpdateCatalogUseCaseImpl.java:23`
+- clase 'UpdateCatalogUseCaseImpl' con baja cohesión (35%) — `src/main/java/com/prog2/catalog/synchronization/application/usecases/UpdateCatalogUseCaseImpl.java:23`
+- método 'UpdateCatalogUseCaseImpl.execute' de 35 líneas — `src/main/java/com/prog2/catalog/synchronization/application/usecases/UpdateCatalogUseCaseImpl.java:80`
+- método 'UpdateCatalogUseCaseImpl.execute' con complejidad 9 — `src/main/java/com/prog2/catalog/synchronization/application/usecases/UpdateCatalogUseCaseImpl.java:80`
+- método 'UpdateCatalogUseCaseImpl.run' con complejidad 6 — `src/main/java/com/prog2/catalog/synchronization/application/usecases/UpdateCatalogUseCaseImpl.java:116`
+- método 'UpdateCatalogUseCaseImpl.applyAttempt' de 36 líneas — `src/main/java/com/prog2/catalog/synchronization/application/usecases/UpdateCatalogUseCaseImpl.java:149`
+- método 'UpdateCatalogUseCaseImpl.applyAttempt' con complejidad 7 — `src/main/java/com/prog2/catalog/synchronization/application/usecases/UpdateCatalogUseCaseImpl.java:149`
+- método 'UpdateCatalogUseCaseImpl.failed' con complejidad 6 — `src/main/java/com/prog2/catalog/synchronization/application/usecases/UpdateCatalogUseCaseImpl.java:221`
+- clase 'UpdateCycle' sin métodos (6 campos): solo datos — `src/main/java/com/prog2/catalog/synchronization/application/usecases/UpdateCatalogUseCaseImpl.java:269`
 - método 'CatalogChangesBatch.CatalogChangesBatch' con 5 parámetros — `src/main/java/com/prog2/catalog/synchronization/domain/model/CatalogChangesBatch.java:8`
 - método 'CatalogConnectionSettings.CatalogConnectionSettings' con 8 parámetros — `src/main/java/com/prog2/catalog/synchronization/domain/model/CatalogConnectionSettings.java:4`
 - método 'CatalogSnapshot.CatalogSnapshot' de 47 líneas — `src/main/java/com/prog2/catalog/synchronization/domain/model/CatalogSnapshot.java:12`
@@ -193,15 +190,15 @@ El análisis encontró las siguientes señales, con el archivo y la línea donde
 - método 'Professional.Professional' con 7 parámetros — `src/main/java/com/prog2/catalog/synchronization/domain/model/Professional.java:6`
 - método 'ProfessionalCategory.ProfessionalCategory' con 6 parámetros — `src/main/java/com/prog2/catalog/synchronization/domain/model/ProfessionalCategory.java:6`
 - método 'ProfessionalSearchCriteria.ProfessionalSearchCriteria' con 6 parámetros — `src/main/java/com/prog2/catalog/synchronization/domain/model/ProfessionalSearchCriteria.java:6`
-- método 'ProfessionalSearchResult.ProfessionalSearchResult' con 5 parámetros — `src/main/java/com/prog2/catalog/synchronization/domain/model/ProfessionalSearchResult.java:6`
+- método 'ProfessionalSearchResult.ProfessionalSearchResult' con 5 parámetros — `src/main/java/com/prog2/catalog/synchronization/domain/model/ProfessionalSearchResult.java:8`
 - método 'SynchronizationResult.SynchronizationResult' con 5 parámetros — `src/main/java/com/prog2/catalog/synchronization/domain/model/SynchronizationResult.java:8`
 - método 'WeeklySchedule.WeeklySchedule' con 9 parámetros — `src/main/java/com/prog2/catalog/synchronization/domain/model/WeeklySchedule.java:8`
-- clase 'WebClientCatalogSnapshotAdapter' grande (LOC=91, métodos=11, campos=5) — `src/main/java/com/prog2/catalog/synchronization/infrastructure/client/adapter/WebClientCatalogSnapshotAdapter.java:24`
-- clase 'WebClientCatalogSnapshotAdapter' con baja cohesión (7%) — `src/main/java/com/prog2/catalog/synchronization/infrastructure/client/adapter/WebClientCatalogSnapshotAdapter.java:24`
-- método 'WebClientCatalogSnapshotAdapter.WebClientCatalogSnapshotAdapter' con 7 parámetros — `src/main/java/com/prog2/catalog/synchronization/infrastructure/client/adapter/WebClientCatalogSnapshotAdapter.java:32`
-- método 'WebClientCatalogSnapshotAdapter.fetch' de 34 líneas — `src/main/java/com/prog2/catalog/synchronization/infrastructure/client/adapter/WebClientCatalogSnapshotAdapter.java:47`
-- método 'WebClientCatalogSnapshotAdapter.fetch' con complejidad 7 — `src/main/java/com/prog2/catalog/synchronization/infrastructure/client/adapter/WebClientCatalogSnapshotAdapter.java:47`
-- método 'WebClientCatalogSnapshotAdapter.httpFailure' con complejidad 6 — `src/main/java/com/prog2/catalog/synchronization/infrastructure/client/adapter/WebClientCatalogSnapshotAdapter.java:82`
+- clase 'WebClientCatalogSnapshotAdapter' grande (LOC=97, métodos=11, campos=5) — `src/main/java/com/prog2/catalog/synchronization/infrastructure/client/adapter/WebClientCatalogSnapshotAdapter.java:27`
+- clase 'WebClientCatalogSnapshotAdapter' con baja cohesión (7%) — `src/main/java/com/prog2/catalog/synchronization/infrastructure/client/adapter/WebClientCatalogSnapshotAdapter.java:27`
+- método 'WebClientCatalogSnapshotAdapter.WebClientCatalogSnapshotAdapter' con 7 parámetros — `src/main/java/com/prog2/catalog/synchronization/infrastructure/client/adapter/WebClientCatalogSnapshotAdapter.java:38`
+- método 'WebClientCatalogSnapshotAdapter.fetch' de 35 líneas — `src/main/java/com/prog2/catalog/synchronization/infrastructure/client/adapter/WebClientCatalogSnapshotAdapter.java:53`
+- método 'WebClientCatalogSnapshotAdapter.fetch' con complejidad 7 — `src/main/java/com/prog2/catalog/synchronization/infrastructure/client/adapter/WebClientCatalogSnapshotAdapter.java:53`
+- método 'WebClientCatalogSnapshotAdapter.httpFailure' con complejidad 6 — `src/main/java/com/prog2/catalog/synchronization/infrastructure/client/adapter/WebClientCatalogSnapshotAdapter.java:89`
 - método 'CatalogSnapshotResponse.CatalogSnapshotResponse' con 5 parámetros — `src/main/java/com/prog2/catalog/synchronization/infrastructure/client/dto/CatalogSnapshotResponse.java:6`
 - método 'ProfessionalCategoryResponse.ProfessionalCategoryResponse' con 6 parámetros — `src/main/java/com/prog2/catalog/synchronization/infrastructure/client/dto/ProfessionalCategoryResponse.java:4`
 - método 'ProfessionalResponse.ProfessionalResponse' con 7 parámetros — `src/main/java/com/prog2/catalog/synchronization/infrastructure/client/dto/ProfessionalResponse.java:4`
@@ -213,25 +210,20 @@ El análisis encontró las siguientes señales, con el archivo y la línea donde
 - clase 'CatalogUpdatedListener' con baja cohesión (20%) — `src/main/java/com/prog2/catalog/synchronization/infrastructure/messaging/CatalogUpdatedListener.java:16`
 - método 'CatalogUpdatedListener.onMessage' con complejidad 7 — `src/main/java/com/prog2/catalog/synchronization/infrastructure/messaging/CatalogUpdatedListener.java:31`
 - método 'CatalogUpdatedResponse.CatalogUpdatedResponse' con 6 parámetros — `src/main/java/com/prog2/catalog/synchronization/infrastructure/messaging/dto/CatalogUpdatedResponse.java:4`
-- clase 'JpaCatalogUpdateAdapter' grande (LOC=27, métodos=11, campos=1) — `src/main/java/com/prog2/catalog/synchronization/infrastructure/persistence/adapter/JpaCatalogUpdateAdapter.java:15`
-- clase 'CatalogSyncStateEntity' grande (LOC=77, métodos=17, campos=11) — `src/main/java/com/prog2/catalog/synchronization/infrastructure/persistence/entity/CatalogSyncStateEntity.java:12`
-- clase 'CatalogSyncStateEntity' con baja cohesión (25%) — `src/main/java/com/prog2/catalog/synchronization/infrastructure/persistence/entity/CatalogSyncStateEntity.java:12`
-- método 'ProfessionalCategoryEntity.ProfessionalCategoryEntity' con 6 parámetros — `src/main/java/com/prog2/catalog/synchronization/infrastructure/persistence/entity/ProfessionalCategoryEntity.java:41`
-- método 'ProfessionalEntity.ProfessionalEntity' con 7 parámetros — `src/main/java/com/prog2/catalog/synchronization/infrastructure/persistence/entity/ProfessionalEntity.java:45`
-- método 'TransactionalCatalogQueryReader.TransactionalCatalogQueryReader' con 5 parámetros — `src/main/java/com/prog2/catalog/synchronization/infrastructure/persistence/service/TransactionalCatalogQueryReader.java:31`
-- clase 'TransactionalCatalogSnapshotWriter' con baja cohesión (43%) — `src/main/java/com/prog2/catalog/synchronization/infrastructure/persistence/service/TransactionalCatalogSnapshotWriter.java:24`
-- método 'TransactionalCatalogSnapshotWriter.TransactionalCatalogSnapshotWriter' con 7 parámetros — `src/main/java/com/prog2/catalog/synchronization/infrastructure/persistence/service/TransactionalCatalogSnapshotWriter.java:33`
-- clase 'TransactionalCatalogUpdateWriter' grande (LOC=115, métodos=17, campos=8) — `src/main/java/com/prog2/catalog/synchronization/infrastructure/persistence/service/TransactionalCatalogUpdateWriter.java:21`
-- clase 'TransactionalCatalogUpdateWriter' con baja cohesión (21%) — `src/main/java/com/prog2/catalog/synchronization/infrastructure/persistence/service/TransactionalCatalogUpdateWriter.java:21`
-- método 'TransactionalCatalogUpdateWriter.TransactionalCatalogUpdateWriter' con 8 parámetros — `src/main/java/com/prog2/catalog/synchronization/infrastructure/persistence/service/TransactionalCatalogUpdateWriter.java:31`
-- método 'TransactionalCatalogUpdateWriter.apply' con complejidad 8 — `src/main/java/com/prog2/catalog/synchronization/infrastructure/persistence/service/TransactionalCatalogUpdateWriter.java:75`
+- clase 'CatalogSyncStateEntity' grande (LOC=76, métodos=16, campos=11) — `src/main/java/com/prog2/catalog/synchronization/infrastructure/persistence/entity/CatalogSyncStateEntity.java:15`
+- clase 'CatalogSyncStateEntity' con baja cohesión (28%) — `src/main/java/com/prog2/catalog/synchronization/infrastructure/persistence/entity/CatalogSyncStateEntity.java:15`
+- clase 'TransactionalCatalogSnapshotWriter' con baja cohesión (33%) — `src/main/java/com/prog2/catalog/synchronization/infrastructure/persistence/service/TransactionalCatalogSnapshotWriter.java:26`
+- clase 'TransactionalCatalogUpdateWriter' grande (LOC=121, métodos=16, campos=8) — `src/main/java/com/prog2/catalog/synchronization/infrastructure/persistence/service/TransactionalCatalogUpdateWriter.java:26`
+- clase 'TransactionalCatalogUpdateWriter' con baja cohesión (16%) — `src/main/java/com/prog2/catalog/synchronization/infrastructure/persistence/service/TransactionalCatalogUpdateWriter.java:26`
+- método 'TransactionalCatalogUpdateWriter.apply' de 30 líneas — `src/main/java/com/prog2/catalog/synchronization/infrastructure/persistence/service/TransactionalCatalogUpdateWriter.java:72`
+- método 'TransactionalCatalogUpdateWriter.apply' con complejidad 8 — `src/main/java/com/prog2/catalog/synchronization/infrastructure/persistence/service/TransactionalCatalogUpdateWriter.java:72`
 - clase 'RedisCatalogChangesAdapter' grande (LOC=155, métodos=16, campos=8) — `src/main/java/com/prog2/catalog/synchronization/infrastructure/redis/adapter/RedisCatalogChangesAdapter.java:27`
 - clase 'RedisCatalogChangesAdapter' con baja cohesión (4%) — `src/main/java/com/prog2/catalog/synchronization/infrastructure/redis/adapter/RedisCatalogChangesAdapter.java:27`
 - método 'RedisCatalogChangesAdapter.RedisCatalogChangesAdapter' con 7 parámetros — `src/main/java/com/prog2/catalog/synchronization/infrastructure/redis/adapter/RedisCatalogChangesAdapter.java:36`
 - método 'RedisCatalogChangesAdapter.readSince' con complejidad 6 — `src/main/java/com/prog2/catalog/synchronization/infrastructure/redis/adapter/RedisCatalogChangesAdapter.java:49`
 - método 'RedisCatalogChangesAdapter.read' de 47 líneas — `src/main/java/com/prog2/catalog/synchronization/infrastructure/redis/adapter/RedisCatalogChangesAdapter.java:68`
 - método 'RedisCatalogChangesAdapter.read' con complejidad 10 — `src/main/java/com/prog2/catalog/synchronization/infrastructure/redis/adapter/RedisCatalogChangesAdapter.java:68`
-- método 'RedisCatalogChangesAdapter.load' con 7 parámetros — `src/main/java/com/prog2/catalog/synchronization/infrastructure/redis/adapter/RedisCatalogChangesAdapter.java:133`
+- método 'RedisCatalogChangesAdapter.load' con 7 parámetros — `src/main/java/com/prog2/catalog/synchronization/infrastructure/redis/adapter/RedisCatalogChangesAdapter.java:145`
 - método 'ProfessionalAgendaResponse.ProfessionalResponse' con 5 parámetros — `src/main/java/com/prog2/catalog/synchronization/infrastructure/web/dto/ProfessionalAgendaResponse.java:11`
 - método 'ProfessionalResponse.ProfessionalResponse' con 5 parámetros — `src/main/java/com/prog2/catalog/synchronization/infrastructure/web/dto/ProfessionalAgendaResponse.java:11`
 - método 'ProfessionalAgendaResponse.WeeklyScheduleResponse' con 5 parámetros — `src/main/java/com/prog2/catalog/synchronization/infrastructure/web/dto/ProfessionalAgendaResponse.java:14`
@@ -245,8 +237,8 @@ El análisis encontró las siguientes señales, con el archivo y la línea donde
 - clase 'CatalogJsonMapperFactory' muy acoplada (CBO=11) — `src/main/java/com/prog2/catalog/infrastructure/config/CatalogJsonMapperFactory.java:9`
 - clase 'CatalogOperationalProperties' muy acoplada (CBO=11) — `src/main/java/com/prog2/catalog/infrastructure/config/CatalogOperationalProperties.java:16`
 - clase 'CatalogOperationalProperties' instancia 6 concretos (CBO=11) — `src/main/java/com/prog2/catalog/infrastructure/config/CatalogOperationalProperties.java:16`
-- clase 'CatalogRemoteClients' muy acoplada (CBO=53) — `src/main/java/com/prog2/catalog/infrastructure/config/CatalogRemoteClients.java:24`
-- clase 'CatalogRemoteClients' instancia 7 concretos (CBO=53) — `src/main/java/com/prog2/catalog/infrastructure/config/CatalogRemoteClients.java:24`
+- clase 'CatalogRemoteClients' muy acoplada (CBO=53) — `src/main/java/com/prog2/catalog/infrastructure/config/CatalogRemoteClients.java:26`
+- clase 'CatalogRemoteClients' instancia 7 concretos (CBO=53) — `src/main/java/com/prog2/catalog/infrastructure/config/CatalogRemoteClients.java:26`
 - clase 'DatabaseConfiguration' muy acoplada (CBO=9) — `src/main/java/com/prog2/catalog/infrastructure/config/DatabaseConfiguration.java:17`
 - clase 'IntegrationProperties' muy acoplada (CBO=15) — `src/main/java/com/prog2/catalog/infrastructure/config/IntegrationProperties.java:19`
 - clase 'IntegrationProperties' instancia 3 concretos (CBO=15) — `src/main/java/com/prog2/catalog/infrastructure/config/IntegrationProperties.java:19`
@@ -255,88 +247,88 @@ El análisis encontró las siguientes señales, con el archivo y la línea donde
 - clase 'JwtSecurityProperties' muy acoplada (CBO=19) — `src/main/java/com/prog2/catalog/infrastructure/security/config/JwtSecurityProperties.java:23`
 - clase 'SecurityConfiguration' muy acoplada (CBO=50) — `src/main/java/com/prog2/catalog/infrastructure/security/config/SecurityConfiguration.java:41`
 - clase 'SecurityConfiguration' instancia 11 concretos (CBO=50) — `src/main/java/com/prog2/catalog/infrastructure/security/config/SecurityConfiguration.java:41`
-- clase 'JwtContractValidator' muy acoplada (CBO=14) — `src/main/java/com/prog2/catalog/infrastructure/security/jwt/JwtContractValidator.java:18`
+- clase 'JwtContractValidator' muy acoplada (CBO=15) — `src/main/java/com/prog2/catalog/infrastructure/security/jwt/JwtContractValidator.java:20`
 - clase 'SecurityProblemHandler' muy acoplada (CBO=25) — `src/main/java/com/prog2/catalog/infrastructure/security/web/SecurityProblemHandler.java:24`
-- clase 'CatalogStartupRunner' muy acoplada (CBO=22) — `src/main/java/com/prog2/catalog/infrastructure/startup/CatalogStartupRunner.java:24`
-- clase 'CatalogSynchronizationMonitor' muy acoplada (CBO=25) — `src/main/java/com/prog2/catalog/infrastructure/startup/CatalogSynchronizationMonitor.java:15`
+- clase 'CatalogStartupRunner' muy acoplada (CBO=28) — `src/main/java/com/prog2/catalog/infrastructure/startup/CatalogStartupRunner.java:26`
+- clase 'CatalogSynchronizationMonitor' muy acoplada (CBO=25) — `src/main/java/com/prog2/catalog/infrastructure/startup/CatalogSynchronizationMonitor.java:17`
 - clase 'InitializeIntegrationUseCaseImpl' muy acoplada (CBO=24) — `src/main/java/com/prog2/catalog/integration/application/usecases/InitializeIntegrationUseCaseImpl.java:26`
 - clase 'InitializeIntegrationUseCaseImpl' instancia 7 concretos (CBO=24) — `src/main/java/com/prog2/catalog/integration/application/usecases/InitializeIntegrationUseCaseImpl.java:26`
 - clase 'IntegrationSession' muy acoplada (CBO=11) — `src/main/java/com/prog2/catalog/integration/domain/model/IntegrationSession.java:16`
 - clase 'WebClientCentralIntegrationAdapter' muy acoplada (CBO=52) — `src/main/java/com/prog2/catalog/integration/infrastructure/client/adapter/WebClientCentralIntegrationAdapter.java:33`
 - clase 'WebClientCentralIntegrationAdapter' instancia 9 concretos (CBO=52) — `src/main/java/com/prog2/catalog/integration/infrastructure/client/adapter/WebClientCentralIntegrationAdapter.java:33`
 - clase 'IntegrationTokenController' muy acoplada (CBO=27) — `src/main/java/com/prog2/catalog/integration/infrastructure/web/controller/IntegrationTokenController.java:36`
-- clase 'CatalogStatusPolicy' muy acoplada (CBO=17) — `src/main/java/com/prog2/catalog/synchronization/application/service/CatalogStatusPolicy.java:16`
+- clase 'CatalogStatusPolicy' muy acoplada (CBO=17) — `src/main/java/com/prog2/catalog/synchronization/application/service/CatalogStatusPolicy.java:19`
 - clase 'GetCatalogStatusUseCaseImpl' muy acoplada (CBO=13) — `src/main/java/com/prog2/catalog/synchronization/application/usecases/GetCatalogStatusUseCaseImpl.java:16`
 - clase 'GetProfessionalAgendaUseCaseImpl' muy acoplada (CBO=20) — `src/main/java/com/prog2/catalog/synchronization/application/usecases/GetProfessionalAgendaUseCaseImpl.java:16`
 - clase 'GetProfessionalAgendaUseCaseImpl' instancia 6 concretos (CBO=20) — `src/main/java/com/prog2/catalog/synchronization/application/usecases/GetProfessionalAgendaUseCaseImpl.java:16`
 - clase 'GetProfessionalCategoriesUseCaseImpl' muy acoplada (CBO=15) — `src/main/java/com/prog2/catalog/synchronization/application/usecases/GetProfessionalCategoriesUseCaseImpl.java:19`
 - clase 'GetProfessionalCategoriesUseCaseImpl' instancia 3 concretos (CBO=15) — `src/main/java/com/prog2/catalog/synchronization/application/usecases/GetProfessionalCategoriesUseCaseImpl.java:19`
-- clase 'RecoverCatalogUseCaseImpl' muy acoplada (CBO=22) — `src/main/java/com/prog2/catalog/synchronization/application/usecases/RecoverCatalogUseCaseImpl.java:16`
-- clase 'RecoverCatalogUseCaseImpl' instancia 3 concretos (CBO=22) — `src/main/java/com/prog2/catalog/synchronization/application/usecases/RecoverCatalogUseCaseImpl.java:16`
-- clase 'SearchProfessionalsUseCaseImpl' muy acoplada (CBO=17) — `src/main/java/com/prog2/catalog/synchronization/application/usecases/SearchProfessionalsUseCaseImpl.java:19`
-- clase 'SearchProfessionalsUseCaseImpl' instancia 4 concretos (CBO=17) — `src/main/java/com/prog2/catalog/synchronization/application/usecases/SearchProfessionalsUseCaseImpl.java:19`
-- clase 'SynchronizeCatalogUseCaseImpl' muy acoplada (CBO=29) — `src/main/java/com/prog2/catalog/synchronization/application/usecases/SynchronizeCatalogUseCaseImpl.java:18`
-- clase 'SynchronizeCatalogUseCaseImpl' instancia 5 concretos (CBO=29) — `src/main/java/com/prog2/catalog/synchronization/application/usecases/SynchronizeCatalogUseCaseImpl.java:18`
-- clase 'UpdateCatalogUseCaseImpl' muy acoplada (CBO=47) — `src/main/java/com/prog2/catalog/synchronization/application/usecases/UpdateCatalogUseCaseImpl.java:19`
-- clase 'UpdateCatalogUseCaseImpl' instancia 14 concretos (CBO=47) — `src/main/java/com/prog2/catalog/synchronization/application/usecases/UpdateCatalogUseCaseImpl.java:19`
+- clase 'RecoverCatalogUseCaseImpl' muy acoplada (CBO=22) — `src/main/java/com/prog2/catalog/synchronization/application/usecases/RecoverCatalogUseCaseImpl.java:18`
+- clase 'RecoverCatalogUseCaseImpl' instancia 3 concretos (CBO=22) — `src/main/java/com/prog2/catalog/synchronization/application/usecases/RecoverCatalogUseCaseImpl.java:18`
+- clase 'SearchProfessionalsUseCaseImpl' muy acoplada (CBO=17) — `src/main/java/com/prog2/catalog/synchronization/application/usecases/SearchProfessionalsUseCaseImpl.java:22`
+- clase 'SearchProfessionalsUseCaseImpl' instancia 4 concretos (CBO=17) — `src/main/java/com/prog2/catalog/synchronization/application/usecases/SearchProfessionalsUseCaseImpl.java:22`
+- clase 'SynchronizeCatalogUseCaseImpl' muy acoplada (CBO=31) — `src/main/java/com/prog2/catalog/synchronization/application/usecases/SynchronizeCatalogUseCaseImpl.java:21`
+- clase 'SynchronizeCatalogUseCaseImpl' instancia 5 concretos (CBO=31) — `src/main/java/com/prog2/catalog/synchronization/application/usecases/SynchronizeCatalogUseCaseImpl.java:21`
+- clase 'UpdateCatalogUseCaseImpl' muy acoplada (CBO=49) — `src/main/java/com/prog2/catalog/synchronization/application/usecases/UpdateCatalogUseCaseImpl.java:23`
+- clase 'UpdateCatalogUseCaseImpl' instancia 14 concretos (CBO=49) — `src/main/java/com/prog2/catalog/synchronization/application/usecases/UpdateCatalogUseCaseImpl.java:23`
 - clase 'SnapshotFailureKind' muy acoplada (CBO=9) — `src/main/java/com/prog2/catalog/synchronization/domain/enums/SnapshotFailureKind.java:4`
 - clase 'SynchronizationPhase' muy acoplada (CBO=13) — `src/main/java/com/prog2/catalog/synchronization/domain/enums/SynchronizationPhase.java:4`
 - clase 'CatalogChangesBatch' muy acoplada (CBO=9) — `src/main/java/com/prog2/catalog/synchronization/domain/model/CatalogChangesBatch.java:8`
 - clase 'CatalogSnapshot' muy acoplada (CBO=11) — `src/main/java/com/prog2/catalog/synchronization/domain/model/CatalogSnapshot.java:12`
 - clase 'CatalogSnapshotRepository' muy acoplada (CBO=10) — `src/main/java/com/prog2/catalog/synchronization/domain/ports/out/CatalogSnapshotRepository.java:10`
 - clase 'CatalogUpdateRepository' muy acoplada (CBO=14) — `src/main/java/com/prog2/catalog/synchronization/domain/ports/out/CatalogUpdateRepository.java:8`
-- clase 'WebClientCatalogSnapshotAdapter' muy acoplada (CBO=37) — `src/main/java/com/prog2/catalog/synchronization/infrastructure/client/adapter/WebClientCatalogSnapshotAdapter.java:24`
-- clase 'WebClientCatalogSnapshotAdapter' instancia 5 concretos (CBO=37) — `src/main/java/com/prog2/catalog/synchronization/infrastructure/client/adapter/WebClientCatalogSnapshotAdapter.java:24`
+- clase 'WebClientCatalogSnapshotAdapter' muy acoplada (CBO=37) — `src/main/java/com/prog2/catalog/synchronization/infrastructure/client/adapter/WebClientCatalogSnapshotAdapter.java:27`
+- clase 'WebClientCatalogSnapshotAdapter' instancia 5 concretos (CBO=37) — `src/main/java/com/prog2/catalog/synchronization/infrastructure/client/adapter/WebClientCatalogSnapshotAdapter.java:27`
 - clase 'CatalogSnapshotResponseMapper' muy acoplada (CBO=22) — `src/main/java/com/prog2/catalog/synchronization/infrastructure/client/mapper/CatalogSnapshotResponseMapper.java:17`
 - clase 'CatalogSnapshotResponseMapper' instancia 6 concretos (CBO=22) — `src/main/java/com/prog2/catalog/synchronization/infrastructure/client/mapper/CatalogSnapshotResponseMapper.java:17`
 - clase 'SynchronizationConfiguration' muy acoplada (CBO=25) — `src/main/java/com/prog2/catalog/synchronization/infrastructure/config/SynchronizationConfiguration.java:28`
 - clase 'SynchronizationConfiguration' instancia 8 concretos (CBO=25) — `src/main/java/com/prog2/catalog/synchronization/infrastructure/config/SynchronizationConfiguration.java:28`
-- clase 'IntegrationTechnicalAccessAdapter' muy acoplada (CBO=11) — `src/main/java/com/prog2/catalog/synchronization/infrastructure/integration/adapter/IntegrationTechnicalAccessAdapter.java:19`
-- clase 'IntegrationTechnicalAccessAdapter' instancia 3 concretos (CBO=11) — `src/main/java/com/prog2/catalog/synchronization/infrastructure/integration/adapter/IntegrationTechnicalAccessAdapter.java:19`
+- clase 'IntegrationTechnicalAccessAdapter' muy acoplada (CBO=11) — `src/main/java/com/prog2/catalog/synchronization/infrastructure/integration/adapter/IntegrationTechnicalAccessAdapter.java:21`
+- clase 'IntegrationTechnicalAccessAdapter' instancia 3 concretos (CBO=11) — `src/main/java/com/prog2/catalog/synchronization/infrastructure/integration/adapter/IntegrationTechnicalAccessAdapter.java:21`
 - clase 'CatalogUpdatedListener' muy acoplada (CBO=22) — `src/main/java/com/prog2/catalog/synchronization/infrastructure/messaging/CatalogUpdatedListener.java:16`
-- clase 'JpaCatalogQueryAdapter' muy acoplada (CBO=12) — `src/main/java/com/prog2/catalog/synchronization/infrastructure/persistence/adapter/JpaCatalogQueryAdapter.java:14`
+- clase 'JpaCatalogQueryAdapter' muy acoplada (CBO=12) — `src/main/java/com/prog2/catalog/synchronization/infrastructure/persistence/adapter/JpaCatalogQueryAdapter.java:19`
 - clase 'JpaCatalogSnapshotAdapter' muy acoplada (CBO=11) — `src/main/java/com/prog2/catalog/synchronization/infrastructure/persistence/adapter/JpaCatalogSnapshotAdapter.java:20`
-- clase 'JpaCatalogUpdateAdapter' muy acoplada (CBO=14) — `src/main/java/com/prog2/catalog/synchronization/infrastructure/persistence/adapter/JpaCatalogUpdateAdapter.java:15`
-- clase 'CatalogSyncStateEntity' muy acoplada (CBO=13) — `src/main/java/com/prog2/catalog/synchronization/infrastructure/persistence/entity/CatalogSyncStateEntity.java:12`
+- clase 'JpaCatalogUpdateAdapter' muy acoplada (CBO=14) — `src/main/java/com/prog2/catalog/synchronization/infrastructure/persistence/adapter/JpaCatalogUpdateAdapter.java:20`
+- clase 'CatalogSyncStateEntity' muy acoplada (CBO=13) — `src/main/java/com/prog2/catalog/synchronization/infrastructure/persistence/entity/CatalogSyncStateEntity.java:15`
 - clase 'CatalogSnapshotPersistenceMapper' muy acoplada (CBO=11) — `src/main/java/com/prog2/catalog/synchronization/infrastructure/persistence/mapper/CatalogSnapshotPersistenceMapper.java:10`
 - clase 'CatalogSnapshotPersistenceMapper' instancia 7 concretos (CBO=11) — `src/main/java/com/prog2/catalog/synchronization/infrastructure/persistence/mapper/CatalogSnapshotPersistenceMapper.java:10`
 - clase 'CatalogStorageFailureMapper' muy acoplada (CBO=24) — `src/main/java/com/prog2/catalog/synchronization/infrastructure/persistence/mapper/CatalogStorageFailureMapper.java:19`
 - clase 'CatalogStorageFailureMapper' instancia 4 concretos (CBO=24) — `src/main/java/com/prog2/catalog/synchronization/infrastructure/persistence/mapper/CatalogStorageFailureMapper.java:19`
-- clase 'TransactionalCatalogQueryReader' muy acoplada (CBO=19) — `src/main/java/com/prog2/catalog/synchronization/infrastructure/persistence/service/TransactionalCatalogQueryReader.java:24`
-- clase 'TransactionalCatalogQueryReader' instancia 5 concretos (CBO=19) — `src/main/java/com/prog2/catalog/synchronization/infrastructure/persistence/service/TransactionalCatalogQueryReader.java:24`
-- clase 'TransactionalCatalogSnapshotWriter' muy acoplada (CBO=26) — `src/main/java/com/prog2/catalog/synchronization/infrastructure/persistence/service/TransactionalCatalogSnapshotWriter.java:24`
-- clase 'TransactionalCatalogUpdateWriter' muy acoplada (CBO=42) — `src/main/java/com/prog2/catalog/synchronization/infrastructure/persistence/service/TransactionalCatalogUpdateWriter.java:21`
-- clase 'TransactionalCatalogUpdateWriter' instancia 8 concretos (CBO=42) — `src/main/java/com/prog2/catalog/synchronization/infrastructure/persistence/service/TransactionalCatalogUpdateWriter.java:21`
+- clase 'TransactionalCatalogQueryReader' muy acoplada (CBO=19) — `src/main/java/com/prog2/catalog/synchronization/infrastructure/persistence/service/TransactionalCatalogQueryReader.java:26`
+- clase 'TransactionalCatalogQueryReader' instancia 5 concretos (CBO=19) — `src/main/java/com/prog2/catalog/synchronization/infrastructure/persistence/service/TransactionalCatalogQueryReader.java:26`
+- clase 'TransactionalCatalogSnapshotWriter' muy acoplada (CBO=26) — `src/main/java/com/prog2/catalog/synchronization/infrastructure/persistence/service/TransactionalCatalogSnapshotWriter.java:26`
+- clase 'TransactionalCatalogUpdateWriter' muy acoplada (CBO=42) — `src/main/java/com/prog2/catalog/synchronization/infrastructure/persistence/service/TransactionalCatalogUpdateWriter.java:26`
+- clase 'TransactionalCatalogUpdateWriter' instancia 8 concretos (CBO=42) — `src/main/java/com/prog2/catalog/synchronization/infrastructure/persistence/service/TransactionalCatalogUpdateWriter.java:26`
 - clase 'ProfessionalSpecifications' muy acoplada (CBO=8) — `src/main/java/com/prog2/catalog/synchronization/infrastructure/persistence/specification/ProfessionalSpecifications.java:11`
 - clase 'RedisCatalogChangesAdapter' muy acoplada (CBO=55) — `src/main/java/com/prog2/catalog/synchronization/infrastructure/redis/adapter/RedisCatalogChangesAdapter.java:27`
 - clase 'RedisCatalogChangesAdapter' instancia 10 concretos (CBO=55) — `src/main/java/com/prog2/catalog/synchronization/infrastructure/redis/adapter/RedisCatalogChangesAdapter.java:27`
 - clase 'CatalogQueryController' muy acoplada (CBO=28) — `src/main/java/com/prog2/catalog/synchronization/infrastructure/web/controller/CatalogQueryController.java:22`
-- clase 'CatalogSearchController' muy acoplada (CBO=25) — `src/main/java/com/prog2/catalog/synchronization/infrastructure/web/controller/CatalogSearchController.java:24`
+- clase 'CatalogSearchController' muy acoplada (CBO=25) — `src/main/java/com/prog2/catalog/synchronization/infrastructure/web/controller/CatalogSearchController.java:27`
 - clase 'ProfessionalSearchRequest' muy acoplada (CBO=12) — `src/main/java/com/prog2/catalog/synchronization/infrastructure/web/dto/ProfessionalSearchRequest.java:10`
 - clase 'CatalogQueryExceptionHandler' muy acoplada (CBO=26) — `src/main/java/com/prog2/catalog/synchronization/infrastructure/web/exception/CatalogQueryExceptionHandler.java:17`
 - clase 'CatalogQueryDtoMapper' muy acoplada (CBO=11) — `src/main/java/com/prog2/catalog/synchronization/infrastructure/web/mapper/CatalogQueryDtoMapper.java:11`
 - clase 'CatalogQueryDtoMapper' instancia 5 concretos (CBO=11) — `src/main/java/com/prog2/catalog/synchronization/infrastructure/web/mapper/CatalogQueryDtoMapper.java:11`
-- clase 'CatalogSearchDtoMapper' muy acoplada (CBO=14) — `src/main/java/com/prog2/catalog/synchronization/infrastructure/web/mapper/CatalogSearchDtoMapper.java:9`
-- clase 'CatalogSearchDtoMapper' instancia 4 concretos (CBO=14) — `src/main/java/com/prog2/catalog/synchronization/infrastructure/web/mapper/CatalogSearchDtoMapper.java:9`
+- clase 'CatalogSearchDtoMapper' muy acoplada (CBO=14) — `src/main/java/com/prog2/catalog/synchronization/infrastructure/web/mapper/CatalogSearchDtoMapper.java:11`
+- clase 'CatalogSearchDtoMapper' instancia 4 concretos (CBO=14) — `src/main/java/com/prog2/catalog/synchronization/infrastructure/web/mapper/CatalogSearchDtoMapper.java:11`
 
 **OCP/type-switch** (6)
-- clase 'CatalogRemoteClients' con 2 type-checks — `src/main/java/com/prog2/catalog/infrastructure/config/CatalogRemoteClients.java:24`
+- clase 'CatalogRemoteClients' con 2 type-checks — `src/main/java/com/prog2/catalog/infrastructure/config/CatalogRemoteClients.java:26`
 - clase 'SecurityConfiguration' con 2 type-checks — `src/main/java/com/prog2/catalog/infrastructure/security/config/SecurityConfiguration.java:41`
-- clase 'JwtContractValidator' con 2 type-checks — `src/main/java/com/prog2/catalog/infrastructure/security/jwt/JwtContractValidator.java:18`
-- clase 'CatalogRejectedRecordKey' con 1 type-checks — `src/main/java/com/prog2/catalog/synchronization/infrastructure/persistence/entity/CatalogRejectedRecordKey.java:9`
+- clase 'JwtContractValidator' con 2 type-checks — `src/main/java/com/prog2/catalog/infrastructure/security/jwt/JwtContractValidator.java:20`
+- clase 'CatalogRejectedRecordKey' con 1 type-checks — `src/main/java/com/prog2/catalog/synchronization/infrastructure/persistence/entity/CatalogRejectedRecordKey.java:14`
 - clase 'CatalogStorageFailureMapper' con 8 type-checks — `src/main/java/com/prog2/catalog/synchronization/infrastructure/persistence/mapper/CatalogStorageFailureMapper.java:19`
 - clase 'RedisCatalogChangesAdapter' con 2 type-checks — `src/main/java/com/prog2/catalog/synchronization/infrastructure/redis/adapter/RedisCatalogChangesAdapter.java:27`
 
 ## 6. Evolución por commit
 
-Métricas calculadas sobre el estado de `main` en **cada commit** (16 commits con trabajo), del primero al último. La calidad usa el perfil `exigente`; el aporte de código lo mide RepoSense. El índice puede **bajar** al crecer el proyecto: se acumulan señales.
+Métricas calculadas sobre el estado de `main` en **cada commit** (17 commits con trabajo), del primero al último. La calidad usa el perfil `exigente`; el aporte de código lo mide RepoSense. El índice puede **bajar** al crecer el proyecto: se acumulan señales.
 
 ```mermaid
 xychart-beta
     title "Índice de calidad a lo largo de los commits"
-    x-axis ["5872261", "941aed3", "511aa03", "690becd", "aa9e8d1", "9d1407c", "14b03bb", "81ae780", "0ec5f30", "f4caf6a", "a2b53ff", "d9107f1", "ba614ef", "02166ba", "000d777", "a40741f"]
+    x-axis ["5872261", "941aed3", "511aa03", "690becd", "aa9e8d1", "9d1407c", "14b03bb", "81ae780", "0ec5f30", "f4caf6a", "a2b53ff", "d9107f1", "ba614ef", "02166ba", "000d777", "a40741f", "1f24b0d"]
     y-axis "Índice" 0 --> 100
-    line [0, 15, 15, 39, 44, 52, 56, 58, 60, 65, 66, 66, 66, 66, 66, 66]
+    line [0, 15, 15, 39, 44, 52, 56, 58, 60, 65, 66, 66, 66, 66, 66, 66, 66]
 ```
 
 | # | Fecha | Commit | Autor | LOC | Índice | %POO | Duplic. | Sueltas |
@@ -357,6 +349,7 @@ xychart-beta
 | 14 | 2026-11-04 | `02166ba` | Valentino Perassi Ferrara | 10,324 | 66 | 76% | 0.8% | 0 |
 | 15 | 2026-11-04 | `000d777` | Valentino Perassi Ferrara | 10,329 | 66 | 76% | 0.8% | 0 |
 | 16 | 2026-11-17 | `a40741f` | Valentino Perassi Ferrara | 10,329 | 66 | 76% | 0.8% | 0 |
+| 17 | 2026-11-19 | `1f24b0d` | Ing. Daniel Quinteros | 10,443 | 66 | 75% | 0.4% | 0 |
 
 ---
 _Informe generado por la cátedra. Las dimensiones y umbrales corresponden a `calidad.py` (perfil `exigente`); el semáforo, a `CRITERIOS-CALIDAD.md`. La documentación del repositorio no se evalúa. Ante dudas, revisá el archivo señalado._
